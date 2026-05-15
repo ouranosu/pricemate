@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "734452752206",
+    "project_id": "priceshare-98812",
+    "storage_bucket": "priceshare-98812.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:734452752206:android:db645a7bdd96de0791081f",
+        "android_client_info": {
+          "package_name": "com.okstore.pricemate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "734452752206-im65vqqdfoq4clcs0nf6uja0264jku1q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_eE_n5q5RD_NxDfmghkv8oIfIbtOV1KA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "734452752206-im65vqqdfoq4clcs0nf6uja0264jku1q.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "734452752206-atoqv67j9llou4k4a4qt4o6tqempf6mp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.okstore.pricemate"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

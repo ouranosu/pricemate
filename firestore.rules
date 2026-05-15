@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSpaceMember(spaceId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/sharedSpaces/$(spaceId)/members/$(request.auth.uid));
+    }
+
+    function isSpaceAdmin(spaceId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/sharedSpaces/$(spaceId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
+    }
+
+    function ownsSpace(spaceId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/sharedSpaces/$(spaceId)).data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, update, delete: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /sharedSpaces/{spaceId} {
+      allow read: if isSpaceMember(spaceId);
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSpaceAdmin(spaceId);
+
+      match /members/{memberId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create: if isSpaceAdmin(spaceId)
+          || (
+            ownsSpace(spaceId)
+            && memberId == request.auth.uid
+            && request.resource.data.role == 'owner'
+          )
+          || (
+            signedIn()
+            && memberId == request.auth.uid
+            && request.resource.data.role == 'member'
+            && request.resource.data.inviteId is string
+            && exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteId))
+            && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.spaceId == spaceId
+            && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteId)).data.status == 'active'
+          );
+        allow update, delete: if isSpaceAdmin(spaceId);
+      }
+
+      match /products/{productId} {
+        allow read, create, update, delete: if isSpaceMember(spaceId);
+      }
+
+      match /shoppingItems/{itemId} {
+        allow read, create, update, delete: if isSpaceMember(spaceId);
+      }
+
+      match /purchaseRecords/{recordId} {
+        allow read, create, update, delete: if isSpaceMember(spaceId);
+      }
+    }
+
+    match /invites/{inviteId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.spaceId is string
+        && isSpaceAdmin(request.resource.data.spaceId)
+        && request.resource.data.role == 'member'
+        && request.resource.data.status == 'active';
+      allow update, delete: if false;
+    }
+  }
+}
