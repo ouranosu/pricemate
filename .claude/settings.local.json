@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\code\\\\okstore\\\\pricemate\\\\lib\" -Recurse -Name)",
+      "Bash(Sort-Object)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(keytool -list -v -keystore \"$env:USERPROFILE\\\\.android\\\\debug.keystore\" -alias androiddebugkey -storepass android -keypass android 2>&1 | Select-String -Pattern \"SHA1|SHA256|MD5\")",
+      "Bash(flutter analyze *)"
+    ]
+  }
+}

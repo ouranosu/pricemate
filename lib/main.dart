@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,13 +13,77 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (details) {
+    final sb = StringBuffer();
+    sb.writeln('FlutterError: ${details.exceptionAsString()}');
+    sb.writeln(
+      'schedulerPhase=${SchedulerBinding.instance.schedulerPhase}',
+    );
+    if (details.informationCollector != null) {
+      for (final info in details.informationCollector!()) {
+        sb.writeln(info.toStringDeep());
+      }
+    }
+    debugLog(sb.toString());
+    debugPrintStack(stackTrace: details.stack);
+    FlutterError.presentError(details);
+  };
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn.instance.initialize(serverClientId: googleServerClientId);
+  debugLog('runApp PriceMateApp');
   runApp(const PriceMateApp());
 }
 
 const googleServerClientId =
     '734452752206-im65vqqdfoq4clcs0nf6uja0264jku1q.apps.googleusercontent.com';
+
+final debugNavigatorObserver = _DebugNavigatorObserver();
+
+void debugLog(String message) {
+  assert(() {
+    debugPrint('[PriceMateDebug] ${DateTime.now().toIso8601String()} $message');
+    return true;
+  }());
+}
+
+String routeLabel(Route<dynamic>? route) {
+  if (route == null) return 'null';
+  return '${route.settings.name ?? route.runtimeType}';
+}
+
+class _DebugNavigatorObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    debugLog(
+      'Navigator didPush ${routeLabel(route)} from ${routeLabel(previousRoute)}',
+    );
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    debugLog(
+      'Navigator didPop ${routeLabel(route)} to ${routeLabel(previousRoute)}',
+    );
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    debugLog(
+      'Navigator didRemove ${routeLabel(route)} previous ${routeLabel(previousRoute)}',
+    );
+    super.didRemove(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    debugLog(
+      'Navigator didReplace ${routeLabel(oldRoute)} with ${routeLabel(newRoute)}',
+    );
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+}
 
 class PriceMateApp extends StatefulWidget {
   const PriceMateApp({super.key, this.useFirebase = true});
@@ -39,11 +104,20 @@ class _PriceMateAppState extends State<PriceMateApp> {
   @override
   void initState() {
     super.initState();
+    debugLog('PriceMateApp initState');
     loadOnboardingState();
     Future<void>.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
+      debugLog('Splash finished');
       setState(() => showSplash = false);
     });
+  }
+
+  @override
+  void dispose() {
+    debugLog('PriceMateApp dispose');
+    store.dispose();
+    super.dispose();
   }
 
   Future<void> loadOnboardingState() async {
@@ -57,14 +131,13 @@ class _PriceMateAppState extends State<PriceMateApp> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: store,
-      builder: (context, _) {
-        final theme = store.selectedTheme;
-
+    return ValueListenableBuilder<AppThemePreset>(
+      valueListenable: store.themeNotifier,
+      builder: (context, theme, _) {
         return MaterialApp(
           title: 'PriceMate',
           debugShowCheckedModeBanner: false,
+          navigatorObservers: [debugNavigatorObserver],
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
@@ -87,6 +160,10 @@ class _PriceMateAppState extends State<PriceMateApp> {
   }
 
   Widget _buildHome() {
+    debugLog(
+      'buildHome splash=$showSplash onboardingLoaded=$onboardingLoaded '
+      'onboardingDone=$onboardingDone signedIn=$signedIn',
+    );
     if (showSplash || !onboardingLoaded) {
       return const SplashView();
     }
@@ -102,6 +179,10 @@ class _PriceMateAppState extends State<PriceMateApp> {
           }
 
           final user = snapshot.data;
+          debugLog(
+            'authState snapshot=${snapshot.connectionState} '
+            'hasUser=${user != null} uid=${user?.uid}',
+          );
           if (user == null) {
             return LoginView(
               onEmailLogin: signInWithEmail,
@@ -110,7 +191,9 @@ class _PriceMateAppState extends State<PriceMateApp> {
             );
           }
 
-          store.connectUser(user);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            store.connectUser(user);
+          });
           return PriceMateShell(store: store, onLogout: signOut);
         },
       );
@@ -150,12 +233,24 @@ class _PriceMateAppState extends State<PriceMateApp> {
   }
 
   Future<void> signInWithGoogle() async {
+    debugPrint('Google Sign-In: start');
+    await GoogleSignIn.instance.signOut();
+    debugPrint('Google Sign-In: previous session cleared');
     final googleUser = await GoogleSignIn.instance.authenticate();
+    debugPrint('Google Sign-In: account selected ${googleUser.email}');
     final googleAuth = googleUser.authentication;
+    if (googleAuth.idToken == null) {
+      throw const GoogleSignInException(
+        code: GoogleSignInExceptionCode.unknownError,
+        description: 'Google ID token was null.',
+      );
+    }
     final credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken,
     );
+    debugPrint('Google Sign-In: signing in to Firebase Auth');
     await FirebaseAuth.instance.signInWithCredential(credential);
+    debugPrint('Google Sign-In: Firebase Auth sign-in complete');
   }
 
   Future<void> signOut() async {
@@ -304,7 +399,7 @@ class _OnboardingViewState extends State<OnboardingView> {
       _OnboardingPage(
         icon: Icons.group_outlined,
         title: '家族みんなで使える',
-        message: '招待リンクで共有スペースに参加し、同じ商品リストと買い物リストを使えます。',
+        message: '招待コードで共有スペースに参加し、同じ商品リストと買い物リストを使えます。',
       ),
     ];
 
@@ -602,11 +697,20 @@ class _LoginViewState extends State<LoginView> {
     try {
       await action();
     } on FirebaseAuthException catch (error) {
+      debugPrint(
+        'FirebaseAuthException: code=${error.code}, message=${error.message}',
+      );
       setState(() => errorMessage = authErrorMessage(error));
     } on GoogleSignInException catch (error) {
+      debugPrint(
+        'GoogleSignInException: code=${error.code.name}, '
+        'description=${error.description}, details=${error.details}',
+      );
       setState(() => errorMessage = googleSignInErrorMessage(error));
-    } catch (error) {
-      setState(() => errorMessage = 'ログインに失敗しました。もう一度お試しください。');
+    } catch (error, stackTrace) {
+      debugPrint('Auth error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      setState(() => errorMessage = 'ログインに失敗しました。$error');
     } finally {
       if (mounted) {
         setState(() => loading = false);
@@ -618,13 +722,15 @@ class _LoginViewState extends State<LoginView> {
 String googleSignInErrorMessage(GoogleSignInException error) {
   return switch (error.code) {
     GoogleSignInExceptionCode.canceled =>
-      'Googleログインが完了しませんでした。アカウント選択後に出る場合は、FirebaseのAndroid SHA設定とgoogle-services.jsonを確認してください。',
+      'Googleログインが完了しませんでした。${error.description ?? 'アカウント選択後に出る場合は、FirebaseのAndroid SHA設定とgoogle-services.jsonを確認してください。'}',
     GoogleSignInExceptionCode.clientConfigurationError =>
-      'Googleログイン設定が未完了です。FirebaseにAndroidのSHA-1/SHA-256を登録し、google-services.jsonを更新してください。',
+      'Googleログイン設定が未完了です。${error.description ?? 'FirebaseにAndroidのSHA-1/SHA-256を登録し、google-services.jsonを更新してください。'}',
     GoogleSignInExceptionCode.providerConfigurationError =>
-      'Googleログインのプロバイダ設定を確認してください。',
-    GoogleSignInExceptionCode.uiUnavailable => 'Googleログイン画面を表示できませんでした。',
-    _ => 'Googleログインに失敗しました。${error.description ?? error.code.name}',
+      'Googleログインのプロバイダ設定を確認してください。${error.description ?? ''}',
+    GoogleSignInExceptionCode.uiUnavailable =>
+      'Googleログイン画面を表示できませんでした。${error.description ?? ''}',
+    _ =>
+      'Googleログインに失敗しました。code=${error.code.name}, description=${error.description ?? 'なし'}',
   };
 }
 
@@ -728,52 +834,71 @@ class PurchaseRecord {
 }
 
 class AppStore extends ChangeNotifier {
-  AppThemePreset selectedTheme = themePresets.first;
+  final ValueNotifier<AppThemePreset> themeNotifier = ValueNotifier(
+    themePresets.first,
+  );
   String? activeUserId;
   String? activeSpaceId;
   bool _connecting = false;
+  bool _notifyScheduled = false;
 
-  final List<Product> products = [
-    Product(
-      id: 'p1',
-      name: '牛乳',
-      storeName: 'スーパー青葉',
-      size: '1L',
-      bestPrice: 178,
-      acceptablePrice: 218,
-      saleDays: {1, 4},
-      memo: '成分無調整を優先',
-    ),
-    Product(
-      id: 'p2',
-      name: '卵',
-      storeName: 'まいにち市場',
-      size: '10個入り',
-      bestPrice: 198,
-      acceptablePrice: 248,
-      saleDays: {2},
-    ),
-  ];
+  final List<Product> products = [];
 
-  final List<ShoppingItem> shoppingItems = [
-    ShoppingItem(id: 's1', name: '牛乳', urgency: Urgency.now),
-    ShoppingItem(id: 's2', name: '食器用洗剤', urgency: Urgency.later),
-  ];
+  final List<ShoppingItem> shoppingItems = [];
 
-  final List<PurchaseRecord> purchaseRecords = [
-    PurchaseRecord(
-      id: 'r1',
-      productName: '牛乳',
-      storeName: 'スーパー青葉',
-      price: 188,
-      purchasedAt: DateTime.now().subtract(const Duration(days: 2)),
-      source: 'manual',
-    ),
-  ];
+  final List<PurchaseRecord> purchaseRecords = [];
 
   int _nextId = 10;
 
+  AppThemePreset get selectedTheme => themeNotifier.value;
+
   String get _id => '${DateTime.now().millisecondsSinceEpoch}-${_nextId++}';
+
+  @override
+  void dispose() {
+    debugLog('AppStore dispose');
+    themeNotifier.dispose();
+    super.dispose();
+  }
+
+  void notifyStoreListeners(String reason) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    debugLog(
+      'AppStore scheduleNotify[$reason] phase=$phase '
+      'user=$activeUserId space=$activeSpaceId '
+      'products=${products.length} shopping=${shoppingItems.length} '
+      'records=${purchaseRecords.length}',
+    );
+
+    // If we are between frames (idle or post-frame callbacks already running),
+    // it is safe to call notifyListeners() directly.  No build scope is active,
+    // and all inactive elements have already been disposed by finalizeTree().
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      if (hasListeners) {
+        debugLog('AppStore notifyDirect[$reason]');
+        notifyListeners();
+      }
+      return;
+    }
+
+    // During a frame (transientCallbacks / persistentCallbacks / build) we must
+    // defer until the frame has fully settled.  A single post-frame callback
+    // fires after finalizeTree(), so inactive elements are already disposed.
+    if (_notifyScheduled) {
+      debugLog('AppStore notifySkipped[$reason] already queued');
+      return;
+    }
+    _notifyScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _notifyScheduled = false;
+      final nowPhase = SchedulerBinding.instance.schedulerPhase;
+      debugLog('AppStore notifyDeferred[$reason] nowPhase=$nowPhase');
+      if (hasListeners) {
+        notifyListeners();
+      }
+    });
+  }
 
   CollectionReference<Map<String, dynamic>> get _productsRef =>
       FirebaseFirestore.instance
@@ -794,45 +919,92 @@ class AppStore extends ChangeNotifier {
           .collection('purchaseRecords');
 
   Future<void> connectUser(User user) async {
-    if (_connecting || activeUserId == user.uid) return;
+    debugLog(
+      'connectUser start uid=${user.uid} currentUser=$activeUserId '
+      'currentSpace=$activeSpaceId connecting=$_connecting',
+    );
+    if (_connecting || (activeUserId == user.uid && activeSpaceId != null)) {
+      debugLog('connectUser skipped');
+      return;
+    }
     _connecting = true;
 
     try {
-      activeUserId = user.uid;
-
       final firestore = FirebaseFirestore.instance;
       final userRef = firestore.collection('users').doc(user.uid);
       final userSnapshot = await userRef.get();
-      activeSpaceId =
-          userSnapshot.data()?['activeSpaceId'] as String? ?? user.uid;
+      final savedSpaceId = userSnapshot.data()?['activeSpaceId'] as String?;
+      var spaceId = savedSpaceId ?? user.uid;
+      debugLog(
+        'connectUser savedSpaceId=$savedSpaceId resolvedSpaceId=$spaceId',
+      );
 
-      await userRef.set({
+      final userData = <String, dynamic>{
         'email': user.email,
         'displayName': user.displayName,
-        'photoUrl': user.photoURL,
-        'activeSpaceId': activeSpaceId,
+        'activeSpaceId': spaceId,
         'updatedAt': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+      if (!userSnapshot.exists) {
+        userData['createdAt'] = FieldValue.serverTimestamp();
+      }
+      await userRef.set(userData, SetOptions(merge: true));
 
-      final spaceRef = firestore.collection('sharedSpaces').doc(activeSpaceId);
-      await spaceRef.set({
-        'name': 'マイスペース',
-        'ownerId': user.uid,
-        'updatedAt': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      if (spaceId == user.uid) {
+        await _ensurePersonalSpace(firestore, user);
+      } else {
+        final memberRef = firestore
+            .collection('sharedSpaces')
+            .doc(spaceId)
+            .collection('members')
+            .doc(user.uid);
+        var isMember = false;
+        try {
+          isMember = (await memberRef.get()).exists;
+        } on FirebaseException catch (error) {
+          if (error.code != 'permission-denied') rethrow;
+        }
+        if (!isMember) {
+          debugLog(
+            'connectUser user is not a member of saved space $spaceId; '
+            'falling back to personal space',
+          );
+          spaceId = user.uid;
+          await userRef.set({
+            'activeSpaceId': spaceId,
+            'updatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+          await _ensurePersonalSpace(firestore, user);
+        }
+      }
 
-      await spaceRef.collection('members').doc(user.uid).set({
-        'role': 'owner',
-        'displayName': user.displayName ?? user.email ?? '自分',
-        'joinedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
+      activeUserId = user.uid;
+      activeSpaceId = spaceId;
+      debugLog('connectUser connected uid=$activeUserId space=$activeSpaceId');
       await loadCloudData();
     } finally {
       _connecting = false;
+      debugLog('connectUser finish connecting=$_connecting');
     }
+  }
+
+  Future<void> _ensurePersonalSpace(
+    FirebaseFirestore firestore,
+    User user,
+  ) async {
+    final spaceRef = firestore.collection('sharedSpaces').doc(user.uid);
+    await spaceRef.set({
+      'name': 'マイスペース',
+      'ownerId': user.uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await spaceRef.collection('members').doc(user.uid).set({
+      'role': 'owner',
+      'displayName': user.displayName ?? user.email ?? '自分',
+      'joinedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<String> createInviteCode() async {
@@ -841,6 +1013,7 @@ class AppStore extends ChangeNotifier {
     }
 
     final code = _newInviteCode();
+    debugLog('createInviteCode space=$activeSpaceId code=$code');
     await FirebaseFirestore.instance.collection('invites').doc(code).set({
       'spaceId': activeSpaceId,
       'role': 'member',
@@ -855,49 +1028,73 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> acceptInviteCode(String code) async {
+    debugLog(
+      'acceptInviteCode start input="$code" currentSpace=$activeSpaceId',
+    );
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw StateError('ログインが必要です。');
     }
 
-    final normalizedCode = code.trim().toUpperCase();
-    final inviteRef = FirebaseFirestore.instance
-        .collection('invites')
-        .doc(normalizedCode);
-    final inviteSnapshot = await inviteRef.get();
-    if (!inviteSnapshot.exists) {
-      throw StateError('招待コードが見つかりません。');
+    final normalizedCode = normalizeInviteCode(code);
+    if (normalizedCode == null) {
+      throw StateError('8文字の招待コードを入力してください。');
     }
+    final firestore = FirebaseFirestore.instance;
+    final inviteRef = firestore.collection('invites').doc(normalizedCode);
+    String? acceptedSpaceId;
+    debugLog('acceptInviteCode normalized=$normalizedCode');
 
-    final invite = inviteSnapshot.data()!;
-    final expiresAt = invite['expiresAt'];
-    if (invite['status'] != 'active' ||
-        (expiresAt is Timestamp &&
-            expiresAt.toDate().isBefore(DateTime.now()))) {
-      throw StateError('この招待コードは期限切れです。');
-    }
+    await firestore.runTransaction((transaction) async {
+      final inviteSnapshot = await transaction.get(inviteRef);
+      if (!inviteSnapshot.exists) {
+        throw StateError('招待コードが見つかりません。');
+      }
 
-    final spaceId = invite['spaceId'] as String;
-    await FirebaseFirestore.instance
-        .collection('sharedSpaces')
-        .doc(spaceId)
-        .collection('members')
-        .doc(user.uid)
-        .set({
-          'role': 'member',
-          'displayName': user.displayName ?? user.email ?? 'メンバー',
-          'inviteId': normalizedCode,
-          'joinedAt': FieldValue.serverTimestamp(),
-        });
+      final invite = inviteSnapshot.data()!;
+      debugLog('acceptInviteCode invite=${invite.toString()}');
+      final expiresAt = invite['expiresAt'];
+      if (invite['status'] != 'active' ||
+          (expiresAt is Timestamp &&
+              expiresAt.toDate().isBefore(DateTime.now()))) {
+        throw StateError('この招待コードは期限切れです。');
+      }
 
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-      'activeSpaceId': spaceId,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      final spaceId = invite['spaceId'];
+      if (spaceId is! String || spaceId.isEmpty) {
+        throw StateError('招待コードの共有先が壊れています。');
+      }
+
+      final memberRef = firestore
+          .collection('sharedSpaces')
+          .doc(spaceId)
+          .collection('members')
+          .doc(user.uid);
+      final userRef = firestore.collection('users').doc(user.uid);
+
+      transaction.set(memberRef, {
+        'role': 'member',
+        'displayName': user.displayName ?? user.email ?? 'メンバー',
+        'inviteId': normalizedCode,
+        'joinedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      transaction.set(userRef, {
+        'activeSpaceId': spaceId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      acceptedSpaceId = spaceId;
+    });
 
     activeUserId = user.uid;
-    activeSpaceId = spaceId;
-    await loadCloudData();
+    activeSpaceId = acceptedSpaceId;
+    if (activeSpaceId == null) {
+      throw StateError('共有スペースに参加できませんでした。');
+    }
+    debugLog(
+      'acceptInviteCode accepted user=$activeUserId space=$activeSpaceId',
+    );
   }
 
   String _newInviteCode() {
@@ -906,13 +1103,26 @@ class AppStore extends ChangeNotifier {
     return List.generate(8, (_) => chars[random.nextInt(chars.length)]).join();
   }
 
+  String? normalizeInviteCode(String input) {
+    final trimmed = input.trim().toUpperCase();
+    if (trimmed.isEmpty) return null;
+
+    final normalized = trimmed.replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
+    return normalized.length == 8 ? normalized : null;
+  }
+
   void clearCloudSession() {
     activeUserId = null;
     activeSpaceId = null;
   }
 
   Future<void> loadCloudData() async {
-    if (activeSpaceId == null) return;
+    debugLog('loadCloudData start space=$activeSpaceId');
+    if (activeSpaceId == null) {
+      debugLog('loadCloudData skipped: no activeSpaceId');
+      return;
+    }
 
     final productSnapshot = await _productsRef.get();
     final shoppingSnapshot = await _shoppingItemsRef.get();
@@ -929,12 +1139,12 @@ class AppStore extends ChangeNotifier {
     purchaseRecords
       ..clear()
       ..addAll(purchaseSnapshot.docs.map(purchaseRecordFromDoc));
-    notifyListeners();
+    notifyStoreListeners('loadCloudData');
   }
 
   void selectTheme(AppThemePreset theme) {
-    selectedTheme = theme;
-    notifyListeners();
+    themeNotifier.value = theme;
+    notifyStoreListeners('selectTheme:${theme.id}');
   }
 
   void upsertProduct(Product? current, Product product) {
@@ -953,20 +1163,26 @@ class AppStore extends ChangeNotifier {
       products.insert(0, savedProduct);
     } else {
       final index = products.indexWhere((item) => item.id == current.id);
-      products[index] = savedProduct;
+      if (index == -1) {
+        debugLog('upsertProduct missing existing id=${current.id}; inserting');
+        products.insert(0, savedProduct);
+      } else {
+        products[index] = savedProduct;
+      }
     }
     if (activeSpaceId != null) {
       _productsRef.doc(savedProduct.id).set(productToMap(savedProduct));
     }
-    notifyListeners();
+    notifyStoreListeners('upsertProduct:${savedProduct.id}');
   }
 
   void deleteProduct(Product product) {
+    debugLog('deleteProduct id=${product.id}');
     products.removeWhere((item) => item.id == product.id);
     if (activeSpaceId != null) {
       _productsRef.doc(product.id).delete();
     }
-    notifyListeners();
+    notifyStoreListeners('deleteProduct:${product.id}');
   }
 
   void upsertShoppingItem(ShoppingItem? current, ShoppingItem item) {
@@ -981,30 +1197,42 @@ class AppStore extends ChangeNotifier {
       shoppingItems.insert(0, savedItem);
     } else {
       final index = shoppingItems.indexWhere((entry) => entry.id == current.id);
-      shoppingItems[index] = savedItem;
+      if (index == -1) {
+        debugLog(
+          'upsertShoppingItem missing existing id=${current.id}; inserting',
+        );
+        shoppingItems.insert(0, savedItem);
+      } else {
+        shoppingItems[index] = savedItem;
+      }
     }
     if (activeSpaceId != null) {
       _shoppingItemsRef.doc(savedItem.id).set(shoppingItemToMap(savedItem));
     }
-    notifyListeners();
+    notifyStoreListeners('upsertShoppingItem:${savedItem.id}');
   }
 
   void toggleShoppingItem(ShoppingItem item) {
     final index = shoppingItems.indexWhere((entry) => entry.id == item.id);
+    if (index == -1) {
+      debugLog('toggleShoppingItem missing id=${item.id}');
+      return;
+    }
     final updatedItem = item.copyWith(checked: !item.checked);
     shoppingItems[index] = updatedItem;
     if (activeSpaceId != null) {
       _shoppingItemsRef.doc(updatedItem.id).set(shoppingItemToMap(updatedItem));
     }
-    notifyListeners();
+    notifyStoreListeners('toggleShoppingItem:${updatedItem.id}');
   }
 
   void deleteShoppingItem(ShoppingItem item) {
+    debugLog('deleteShoppingItem id=${item.id}');
     shoppingItems.removeWhere((entry) => entry.id == item.id);
     if (activeSpaceId != null) {
       _shoppingItemsRef.doc(item.id).delete();
     }
-    notifyListeners();
+    notifyStoreListeners('deleteShoppingItem:${item.id}');
   }
 
   void addPurchaseRecord(PurchaseRecord record) {
@@ -1022,7 +1250,7 @@ class AppStore extends ChangeNotifier {
           .doc(savedRecord.id)
           .set(purchaseRecordToMap(savedRecord));
     }
-    notifyListeners();
+    notifyStoreListeners('addPurchaseRecord:${savedRecord.id}');
   }
 
   Map<String, dynamic> productToMap(Product product) {
@@ -1122,97 +1350,138 @@ class _PriceMateShellState extends State<PriceMateShell> {
   int selectedIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    debugLog('PriceMateShell initState');
+  }
+
+  @override
+  void dispose() {
+    debugLog('PriceMateShell dispose selectedIndex=$selectedIndex');
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final store = widget.store;
 
-    return AnimatedBuilder(
-      animation: store,
-      builder: (context, _) {
-        final pages = [
-          HomeView(store: store),
-          ShoppingListView(store: store),
-          InputView(store: store),
-          ProductListView(store: store),
-          SettingsView(store: store, onLogout: widget.onLogout),
-        ];
-        final pageVersion = Object.hash(
-          selectedIndex,
-          store.products.length,
-          store.shoppingItems.length,
-          store.purchaseRecords.length,
-        );
+    debugLog('PriceMateShell build selectedIndex=$selectedIndex');
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('PriceMate'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            tooltip: '通知',
+            icon: const Icon(Icons.notifications_none),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _StorePage(
+          store: store,
+          selectedIndex: selectedIndex,
+          onLogout: widget.onLogout,
+        ),
+      ),
+      floatingActionButton: SizedBox(
+        width: 64,
+        height: 64,
+        child: FloatingActionButton(
+          tooltip: '入力',
+          shape: const CircleBorder(),
+          onPressed: () {
+            debugLog('FAB tap input');
+            setState(() => selectedIndex = 2);
+          },
+          child: const Icon(Icons.add, size: 32),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        height: 74,
+        padding: EdgeInsets.zero,
+        notchMargin: 8,
+        shape: const CircularNotchedRectangle(),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _TabButton(
+              icon: Icons.home_outlined,
+              activeIcon: Icons.home,
+              label: 'ホーム',
+              active: selectedIndex == 0,
+              onTap: () {
+                debugLog('Tab tap home');
+                setState(() => selectedIndex = 0);
+              },
+            ),
+            _TabButton(
+              icon: Icons.checklist_outlined,
+              activeIcon: Icons.checklist,
+              label: '買い物',
+              active: selectedIndex == 1,
+              onTap: () {
+                debugLog('Tab tap shopping');
+                setState(() => selectedIndex = 1);
+              },
+            ),
+            const SizedBox(width: 72),
+            _TabButton(
+              icon: Icons.inventory_2_outlined,
+              activeIcon: Icons.inventory_2,
+              label: '商品',
+              active: selectedIndex == 3,
+              onTap: () {
+                debugLog('Tab tap products');
+                setState(() => selectedIndex = 3);
+              },
+            ),
+            _TabButton(
+              icon: Icons.settings_outlined,
+              activeIcon: Icons.settings,
+              label: '設定',
+              active: selectedIndex == 4,
+              onTap: () {
+                debugLog('Tab tap settings');
+                setState(() => selectedIndex = 4);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('PriceMate'),
-            centerTitle: false,
-            actions: [
-              IconButton(
-                tooltip: '通知',
-                icon: const Icon(Icons.notifications_none),
-                onPressed: () {},
-              ),
-            ],
-          ),
-          body: SafeArea(
-            child: KeyedSubtree(
-              key: ValueKey(pageVersion),
-              child: pages[selectedIndex],
-            ),
-          ),
-          floatingActionButton: SizedBox(
-            width: 64,
-            height: 64,
-            child: FloatingActionButton(
-              tooltip: '入力',
-              shape: const CircleBorder(),
-              onPressed: () => setState(() => selectedIndex = 2),
-              child: const Icon(Icons.add, size: 32),
-            ),
-          ),
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerDocked,
-          bottomNavigationBar: BottomAppBar(
-            height: 74,
-            padding: EdgeInsets.zero,
-            notchMargin: 8,
-            shape: const CircularNotchedRectangle(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _TabButton(
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home,
-                  label: 'ホーム',
-                  active: selectedIndex == 0,
-                  onTap: () => setState(() => selectedIndex = 0),
-                ),
-                _TabButton(
-                  icon: Icons.checklist_outlined,
-                  activeIcon: Icons.checklist,
-                  label: '買い物',
-                  active: selectedIndex == 1,
-                  onTap: () => setState(() => selectedIndex = 1),
-                ),
-                const SizedBox(width: 72),
-                _TabButton(
-                  icon: Icons.inventory_2_outlined,
-                  activeIcon: Icons.inventory_2,
-                  label: '商品',
-                  active: selectedIndex == 3,
-                  onTap: () => setState(() => selectedIndex = 3),
-                ),
-                _TabButton(
-                  icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
-                  label: '設定',
-                  active: selectedIndex == 4,
-                  onTap: () => setState(() => selectedIndex = 4),
-                ),
-              ],
-            ),
-          ),
+class _StorePage extends StatelessWidget {
+  const _StorePage({
+    required this.store,
+    required this.selectedIndex,
+    required this.onLogout,
+  });
+
+  final AppStore store;
+  final int selectedIndex;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        debugLog(
+          'StorePage rebuild selectedIndex=$selectedIndex '
+          'space=${store.activeSpaceId}',
         );
+        return switch (selectedIndex) {
+          0 => HomeView(store: store),
+          1 => ShoppingListView(store: store),
+          2 => InputView(store: store),
+          3 => ProductListView(store: store),
+          _ => SettingsView(store: store, onLogout: onLogout),
+        };
       },
     );
   }
@@ -1355,7 +1624,10 @@ class ShoppingListView extends StatelessWidget {
               key: ValueKey(item.id),
               direction: DismissDirection.endToStart,
               background: const _DeleteBackground(),
-              onDismissed: (_) => store.deleteShoppingItem(item),
+              onDismissed: (_) {
+                debugLog('Dismiss shopping item id=${item.id}');
+                store.deleteShoppingItem(item);
+              },
               child: Card(
                 child: ListTile(
                   leading: Checkbox(
@@ -1480,7 +1752,10 @@ class ProductListView extends StatelessWidget {
               key: ValueKey(product.id),
               direction: DismissDirection.endToStart,
               background: const _DeleteBackground(),
-              onDismissed: (_) => store.deleteProduct(product),
+              onDismissed: (_) {
+                debugLog('Dismiss product id=${product.id}');
+                store.deleteProduct(product);
+              },
               child: Card(
                 child: ListTile(
                   title: Text(
@@ -1612,12 +1887,21 @@ Future<void> showProductSheet(
   );
   final memo = TextEditingController(text: product?.memo ?? '');
   final saleDays = {...?product?.saleDays};
+  var isProcessing = false;
+  // Captured inside the builder so we can wait for the dismiss animation to
+  // complete before disposing controllers and updating the store.
+  // showModalBottomSheet's future resolves the moment Navigator.pop is called
+  // (not when the animation finishes), so the sheet's widget tree is still
+  // alive during the reverse animation.
+  Animation<double>? sheetAnimation;
 
-  await showModalBottomSheet<void>(
+  debugLog('showProductSheet open product=${product?.id}');
+  final result = await showModalBottomSheet<Product>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) {
+    builder: (ctx) {
+      sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
           return Padding(
@@ -1629,6 +1913,7 @@ Future<void> showProductSheet(
             ),
             child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _SheetTitle(title: product == null ? '商品を登録' : '商品を編集'),
@@ -1683,27 +1968,54 @@ Future<void> showProductSheet(
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
-                    onPressed: () {
-                      store.upsertProduct(
-                        product,
-                        Product(
-                          id: product?.id ?? 'new',
-                          name: name.text.trim(),
-                          storeName: storeName.text.trim(),
-                          size: size.text.trim().isEmpty
-                              ? null
-                              : size.text.trim(),
-                          bestPrice: int.tryParse(bestPrice.text) ?? 0,
-                          acceptablePrice:
-                              int.tryParse(acceptablePrice.text) ?? 0,
-                          saleDays: saleDays,
-                          memo: memo.text.trim().isEmpty
-                              ? null
-                              : memo.text.trim(),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    },
+                    // Duration.zero prevents AnimatedDefaultTextStyle from
+                    // starting a Ticker when the button goes disabled, avoiding
+                    // the "wrong build scope" assertion in newer Flutter.
+                    style: const ButtonStyle(
+                      animationDuration: Duration.zero,
+                    ),
+                    onPressed: isProcessing
+                        ? null
+                        : () {
+                            debugLog(
+                              'showProductSheet safeClose '
+                              'phase=${SchedulerBinding.instance.schedulerPhase}',
+                            );
+                            final saved = Product(
+                              id: product?.id ?? 'new',
+                              name: name.text.trim(),
+                              storeName: storeName.text.trim(),
+                              size: size.text.trim().isEmpty
+                                  ? null
+                                  : size.text.trim(),
+                              bestPrice: int.tryParse(bestPrice.text) ?? 0,
+                              acceptablePrice:
+                                  int.tryParse(acceptablePrice.text) ?? 0,
+                              saleDays: saleDays,
+                              memo: memo.text.trim().isEmpty
+                                  ? null
+                                  : memo.text.trim(),
+                            );
+                            // setSheetState disables the button (onPressed→null),
+                            // which causes InkResponse to call cancel() on the
+                            // active InkRipple, clearing its InheritedWidget
+                            // dependents before the modal is removed.
+                            // animationDuration:zero on the button ensures that
+                            // the resulting text-style change completes instantly
+                            // (no Ticker) so it cannot fire markNeedsBuild() in
+                            // the wrong build scope on a later frame.
+                            setSheetState(() {
+                              debugLog('showProductSheet setSheetState isProcessing=true');
+                              isProcessing = true;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              debugLog(
+                                'showProductSheet popCallback mounted=${context.mounted} '
+                                'phase=${SchedulerBinding.instance.schedulerPhase}',
+                              );
+                              if (context.mounted) Navigator.pop(context, saved);
+                            });
+                          },
                     child: const Text('保存'),
                   ),
                 ],
@@ -1714,6 +2026,44 @@ Future<void> showProductSheet(
       );
     },
   );
+  debugLog(
+    'showProductSheet future resolved product=${product?.id} '
+    'animStatus=${sheetAnimation?.status} '
+    'phase=${SchedulerBinding.instance.schedulerPhase}',
+  );
+
+  // Do NOT dispose controllers or update the store here yet.
+  // The dismiss animation is still running; the sheet's TextField widgets are
+  // still in the tree and may rebuild, causing "controller used after dispose".
+  // Wait for AnimationStatus.dismissed before finalizing.
+  void finalizeProductSheet() {
+    debugLog(
+      'showProductSheet finalize '
+      'phase=${SchedulerBinding.instance.schedulerPhase}',
+    );
+    name.dispose();
+    storeName.dispose();
+    size.dispose();
+    bestPrice.dispose();
+    acceptablePrice.dispose();
+    memo.dispose();
+    if (result != null) {
+      store.upsertProduct(product, result);
+    }
+  }
+
+  final anim = sheetAnimation;
+  if (anim == null || anim.status == AnimationStatus.dismissed) {
+    finalizeProductSheet();
+  } else {
+    void onStatus(AnimationStatus status) {
+      if (status == AnimationStatus.dismissed) {
+        anim.removeStatusListener(onStatus);
+        finalizeProductSheet();
+      }
+    }
+    anim.addStatusListener(onStatus);
+  }
 }
 
 Future<void> showShoppingItemSheet(
@@ -1723,12 +2073,16 @@ Future<void> showShoppingItemSheet(
 }) async {
   final name = TextEditingController(text: item?.name ?? '');
   var urgency = item?.urgency ?? Urgency.now;
+  var isProcessing = false;
+  Animation<double>? sheetAnimation;
 
-  await showModalBottomSheet<void>(
+  debugLog('showShoppingItemSheet open item=${item?.id}');
+  final savedItem = await showModalBottomSheet<ShoppingItem>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) {
+    builder: (ctx) {
+      sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
           return Padding(
@@ -1759,18 +2113,32 @@ Future<void> showShoppingItemSheet(
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
-                  onPressed: () {
-                    store.upsertShoppingItem(
-                      item,
-                      ShoppingItem(
-                        id: item?.id ?? 'new',
-                        name: name.text.trim(),
-                        urgency: urgency,
-                        checked: item?.checked ?? false,
-                      ),
-                    );
-                    Navigator.pop(context);
-                  },
+                  style: const ButtonStyle(animationDuration: Duration.zero),
+                  onPressed: isProcessing
+                      ? null
+                      : () {
+                          debugLog(
+                            'showShoppingItemSheet safeClose '
+                            'phase=${SchedulerBinding.instance.schedulerPhase}',
+                          );
+                          final result = ShoppingItem(
+                            id: item?.id ?? 'new',
+                            name: name.text.trim(),
+                            urgency: urgency,
+                            checked: item?.checked ?? false,
+                          );
+                          setSheetState(() {
+                            debugLog('showShoppingItemSheet setSheetState isProcessing=true');
+                            isProcessing = true;
+                          });
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            debugLog(
+                              'showShoppingItemSheet popCallback mounted=${context.mounted} '
+                              'phase=${SchedulerBinding.instance.schedulerPhase}',
+                            );
+                            if (context.mounted) Navigator.pop(context, result);
+                          });
+                        },
                   child: const Text('保存'),
                 ),
               ],
@@ -1780,6 +2148,35 @@ Future<void> showShoppingItemSheet(
       );
     },
   );
+  debugLog(
+    'showShoppingItemSheet future resolved item=${item?.id} '
+    'animStatus=${sheetAnimation?.status} '
+    'phase=${SchedulerBinding.instance.schedulerPhase}',
+  );
+
+  void finalizeShoppingSheet() {
+    debugLog(
+      'showShoppingItemSheet finalize '
+      'phase=${SchedulerBinding.instance.schedulerPhase}',
+    );
+    name.dispose();
+    if (savedItem != null) {
+      store.upsertShoppingItem(item, savedItem);
+    }
+  }
+
+  final anim = sheetAnimation;
+  if (anim == null || anim.status == AnimationStatus.dismissed) {
+    finalizeShoppingSheet();
+  } else {
+    void onStatus(AnimationStatus status) {
+      if (status == AnimationStatus.dismissed) {
+        anim.removeStatusListener(onStatus);
+        finalizeShoppingSheet();
+      }
+    }
+    anim.addStatusListener(onStatus);
+  }
 }
 
 Future<void> showPurchaseSheet(
@@ -1790,146 +2187,74 @@ Future<void> showPurchaseSheet(
   final productName = TextEditingController(text: product?.name ?? '');
   final storeName = TextEditingController(text: product?.storeName ?? '');
   final price = TextEditingController();
+  var isProcessing = false;
+  Animation<double>? sheetAnimation;
 
-  await showModalBottomSheet<void>(
+  debugLog('showPurchaseSheet open product=${product?.id}');
+  final result = await showModalBottomSheet<PurchaseRecord>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _SheetTitle(title: '購入履歴を登録'),
-            TextField(
-              controller: productName,
-              decoration: const InputDecoration(labelText: '商品名'),
-            ),
-            TextField(
-              controller: storeName,
-              decoration: const InputDecoration(labelText: '店舗名'),
-            ),
-            TextField(
-              controller: price,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '購入価格'),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () {
-                store.addPurchaseRecord(
-                  PurchaseRecord(
-                    id: 'new',
-                    productName: productName.text.trim(),
-                    storeName: storeName.text.trim(),
-                    price: int.tryParse(price.text) ?? 0,
-                    purchasedAt: DateTime.now(),
-                    source: 'manual',
-                  ),
-                );
-                Navigator.pop(context);
-              },
-              child: const Text('保存'),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Future<void> showInviteSheet(BuildContext context, AppStore store) async {
-  String? inviteCode;
-  String? errorMessage;
-  var loading = false;
-  await showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (context) {
+    builder: (ctx) {
+      sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          final inviteUrl = inviteCode == null
-              ? null
-              : 'https://pricemate.example.com/invite/$inviteCode';
-
           return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _SheetTitle(title: 'パートナーを招待'),
-                const Text('招待コードを作成して、家族に共有します。有効期限は7日間です。'),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ],
-                if (inviteCode != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    inviteCode!,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SelectableText(inviteUrl!),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: inviteUrl));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('招待リンクをコピーしました')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('招待リンクをコピー'),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: loading
+                const _SheetTitle(title: '購入履歴を登録'),
+                TextField(
+                  controller: productName,
+                  decoration: const InputDecoration(labelText: '商品名'),
+                ),
+                TextField(
+                  controller: storeName,
+                  decoration: const InputDecoration(labelText: '店舗名'),
+                ),
+                TextField(
+                  controller: price,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: '購入価格'),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  style: const ButtonStyle(animationDuration: Duration.zero),
+                  onPressed: isProcessing
                       ? null
-                      : () async {
+                      : () {
+                          debugLog(
+                            'showPurchaseSheet safeClose '
+                            'phase=${SchedulerBinding.instance.schedulerPhase}',
+                          );
+                          final record = PurchaseRecord(
+                            id: 'new',
+                            productName: productName.text.trim(),
+                            storeName: storeName.text.trim(),
+                            price: int.tryParse(price.text) ?? 0,
+                            purchasedAt: DateTime.now(),
+                            source: 'manual',
+                          );
                           setSheetState(() {
-                            loading = true;
-                            errorMessage = null;
+                            debugLog('showPurchaseSheet setSheetState isProcessing=true');
+                            isProcessing = true;
                           });
-                          try {
-                            final code = await store.createInviteCode();
-                            setSheetState(() => inviteCode = code);
-                          } catch (_) {
-                            setSheetState(
-                              () => errorMessage = '招待コードを作成できませんでした。',
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            debugLog(
+                              'showPurchaseSheet popCallback mounted=${context.mounted} '
+                              'phase=${SchedulerBinding.instance.schedulerPhase}',
                             );
-                          } finally {
-                            setSheetState(() => loading = false);
-                          }
+                            if (context.mounted) Navigator.pop(context, record);
+                          });
                         },
-                  icon: loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.link),
-                  label: Text(inviteCode == null ? '招待コードを作成' : '作り直す'),
+                  child: const Text('保存'),
                 ),
               ],
             ),
@@ -1938,13 +2263,44 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
       );
     },
   );
+  debugLog(
+    'showPurchaseSheet future resolved product=${product?.id} '
+    'animStatus=${sheetAnimation?.status} '
+    'phase=${SchedulerBinding.instance.schedulerPhase}',
+  );
+
+  void finalizePurchaseSheet() {
+    debugLog(
+      'showPurchaseSheet finalize '
+      'phase=${SchedulerBinding.instance.schedulerPhase}',
+    );
+    productName.dispose();
+    storeName.dispose();
+    price.dispose();
+    if (result != null) {
+      store.addPurchaseRecord(result);
+    }
+  }
+
+  final anim = sheetAnimation;
+  if (anim == null || anim.status == AnimationStatus.dismissed) {
+    finalizePurchaseSheet();
+  } else {
+    void onStatus(AnimationStatus status) {
+      if (status == AnimationStatus.dismissed) {
+        anim.removeStatusListener(onStatus);
+        finalizePurchaseSheet();
+      }
+    }
+    anim.addStatusListener(onStatus);
+  }
 }
 
-Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
-  final codeController = TextEditingController();
+Future<void> showInviteSheet(BuildContext context, AppStore store) async {
+  String? inviteCode;
   String? errorMessage;
   var loading = false;
-
+  debugLog('showInviteSheet open');
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -1959,62 +2315,183 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
               20,
               MediaQuery.of(context).viewInsets.bottom + 24,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _SheetTitle(title: '招待コードを入力'),
-                const Text('家族から共有された8文字の招待コードを入力してください。'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: codeController,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: '招待コード',
-                    prefixIcon: Icon(Icons.vpn_key_outlined),
-                  ),
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _SheetTitle(title: 'パートナーを招待'),
+                  const Text('招待コードを作成して、家族に共有します。有効期限は7日間です。'),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
+                  ],
+                  if (inviteCode != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      inviteCode!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: inviteCode!),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('招待コードをコピーしました')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.copy),
+                      label: const Text('招待コードをコピー'),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            setSheetState(() {
+                              loading = true;
+                              errorMessage = null;
+                            });
+                            try {
+                              debugLog('showInviteSheet create invite start');
+                              final code = await store.createInviteCode();
+                              debugLog(
+                                'showInviteSheet create invite success code=$code',
+                              );
+                              setSheetState(() => inviteCode = code);
+                            } catch (_) {
+                              debugLog('showInviteSheet create invite failed');
+                              setSheetState(
+                                () => errorMessage = '招待コードを作成できませんでした。',
+                              );
+                            } finally {
+                              setSheetState(() => loading = false);
+                            }
+                          },
+                    icon: loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.vpn_key_outlined),
+                    label: Text(inviteCode == null ? '招待コードを作成' : '作り直す'),
                   ),
                 ],
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          setSheetState(() {
-                            loading = true;
-                            errorMessage = null;
-                          });
-                          try {
-                            await store.acceptInviteCode(codeController.text);
-                            if (context.mounted) Navigator.pop(context);
-                          } catch (error) {
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+  debugLog('showInviteSheet closed');
+}
+
+Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
+  final codeController = TextEditingController();
+  String? errorMessage;
+  var loading = false;
+
+  debugLog('showAcceptInviteSheet open');
+  final accepted = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _SheetTitle(title: '招待コードを入力'),
+                  const Text('共有された8文字の招待コードを入力してください。'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: codeController,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: '招待コード',
+                      hintText: '例: ABCD2345',
+                      prefixIcon: Icon(Icons.vpn_key_outlined),
+                    ),
+                  ),
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: loading
+                        ? null
+                        : () async {
                             setSheetState(() {
-                              errorMessage = error is StateError
-                                  ? error.message
-                                  : '招待コードを確認できませんでした。';
+                              loading = true;
+                              errorMessage = null;
                             });
-                          } finally {
-                            setSheetState(() => loading = false);
-                          }
-                        },
-                  icon: loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.login),
-                  label: const Text('参加する'),
-                ),
-              ],
+                            try {
+                              debugLog('showAcceptInviteSheet accept start');
+                              await store.acceptInviteCode(codeController.text);
+                              debugLog(
+                                'showAcceptInviteSheet accept success; pop',
+                              );
+                              if (sheetContext.mounted) {
+                                Navigator.of(sheetContext).pop(true);
+                              }
+                              return;
+                            } catch (error) {
+                              debugLog(
+                                'showAcceptInviteSheet accept failed $error',
+                              );
+                              if (!context.mounted) return;
+                              setSheetState(() {
+                                errorMessage = inviteErrorMessage(error);
+                              });
+                            }
+                            if (context.mounted) {
+                              setSheetState(() => loading = false);
+                            }
+                          },
+                    icon: loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.login),
+                    label: const Text('参加する'),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -2023,18 +2500,47 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
   );
 
   codeController.dispose();
+  debugLog(
+    'showAcceptInviteSheet closed accepted=$accepted controller disposed',
+  );
+
+  if (accepted == true) {
+    debugLog('showAcceptInviteSheet load after close start');
+    await store.loadCloudData();
+    debugLog('showAcceptInviteSheet load after close done');
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('共有スペースに参加しました。')));
+    }
+  }
+}
+
+String inviteErrorMessage(Object error) {
+  if (error is StateError) {
+    return error.message;
+  }
+  if (error is FirebaseException) {
+    return switch (error.code) {
+      'permission-denied' => '招待コードを確認できませんでした。コードが正しいか、招待が有効か確認してください。',
+      'invalid-argument' => '招待コードの形式を確認してください。',
+      _ => '招待コードを確認できませんでした。${error.code}',
+    };
+  }
+  return '招待コードを確認できませんでした。';
 }
 
 Future<void> showThemeSheet(BuildContext context, AppStore store) async {
-  await showModalBottomSheet<void>(
+  var isProcessing = false;
+
+  final selected = await showModalBottomSheet<AppThemePreset>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
     builder: (context) {
-      return AnimatedBuilder(
-        animation: store,
-        builder: (context, _) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
           return FractionallySizedBox(
             heightFactor: 0.75,
             child: Padding(
@@ -2055,10 +2561,17 @@ Future<void> showThemeSheet(BuildContext context, AppStore store) async {
                               (theme) => _ThemePresetTile(
                                 theme: theme,
                                 selected: store.selectedTheme.id == theme.id,
-                                onTap: () {
-                                  store.selectTheme(theme);
-                                  Navigator.pop(context);
-                                },
+                                onTap: isProcessing
+                                    ? null
+                                    : () {
+                                        setSheetState(() => isProcessing = true);
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (context.mounted) {
+                                            Navigator.pop(context, theme);
+                                          }
+                                        });
+                                      },
                               ),
                             ),
                           ],
@@ -2074,6 +2587,9 @@ Future<void> showThemeSheet(BuildContext context, AppStore store) async {
       );
     },
   );
+  if (selected != null) {
+    store.selectTheme(selected);
+  }
 }
 
 class _MetricCard extends StatelessWidget {
@@ -2290,7 +2806,7 @@ class _ThemePresetTile extends StatelessWidget {
 
   final AppThemePreset theme;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
