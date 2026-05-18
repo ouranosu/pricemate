@@ -2407,13 +2407,15 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
   final codeController = TextEditingController();
   String? errorMessage;
   var loading = false;
+  Animation<double>? sheetAnimation;
 
   debugLog('showAcceptInviteSheet open');
   final accepted = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (sheetContext) {
+    builder: (ctx) {
+      sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
           return SafeArea(
@@ -2451,6 +2453,9 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
                   ],
                   const SizedBox(height: 16),
                   FilledButton.icon(
+                    style: const ButtonStyle(
+                      animationDuration: Duration.zero,
+                    ),
                     onPressed: loading
                         ? null
                         : () async {
@@ -2464,8 +2469,8 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
                               debugLog(
                                 'showAcceptInviteSheet accept success; pop',
                               );
-                              if (sheetContext.mounted) {
-                                Navigator.of(sheetContext).pop(true);
+                              if (context.mounted) {
+                                Navigator.of(context).pop(true);
                               }
                               return;
                             } catch (error) {
@@ -2499,20 +2504,41 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
     },
   );
 
-  codeController.dispose();
   debugLog(
-    'showAcceptInviteSheet closed accepted=$accepted controller disposed',
+    'showAcceptInviteSheet future resolved accepted=$accepted '
+    'animStatus=${sheetAnimation?.status} '
+    'phase=${SchedulerBinding.instance.schedulerPhase}',
   );
 
-  if (accepted == true) {
-    debugLog('showAcceptInviteSheet load after close start');
-    await store.loadCloudData();
-    debugLog('showAcceptInviteSheet load after close done');
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('共有スペースに参加しました。')));
+  void finalizeAcceptSheet() {
+    debugLog(
+      'showAcceptInviteSheet finalize '
+      'phase=${SchedulerBinding.instance.schedulerPhase}',
+    );
+    codeController.dispose();
+    if (accepted == true) {
+      store.loadCloudData().then((_) {
+        debugLog('showAcceptInviteSheet loadCloudData done');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('共有スペースに参加しました。')),
+          );
+        }
+      });
     }
+  }
+
+  final anim = sheetAnimation;
+  if (anim == null || anim.status == AnimationStatus.dismissed) {
+    finalizeAcceptSheet();
+  } else {
+    void onStatus(AnimationStatus status) {
+      if (status == AnimationStatus.dismissed) {
+        anim.removeStatusListener(onStatus);
+        finalizeAcceptSheet();
+      }
+    }
+    anim.addStatusListener(onStatus);
   }
 }
 
