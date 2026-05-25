@@ -5,7 +5,9 @@
       "Bash(Sort-Object)",
       "PowerShell(Test-Path *)",
       "PowerShell(keytool -list -v -keystore \"$env:USERPROFILE\\\\.android\\\\debug.keystore\" -alias androiddebugkey -storepass android -keypass android 2>&1 | Select-String -Pattern \"SHA1|SHA256|MD5\")",
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(flutter emulators *)",
+      "Bash(flutter pub *)"
     ]
   }
 }

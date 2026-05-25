@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Run the app (connected device or emulator required)
-flutter run
+# Requires .env.json with GEMINI_API_KEY (copy from .env.json.example)
+flutter run --dart-define-from-file=.env.json
 
 # Run with Firebase disabled (local UI testing)
 # Set useFirebase: false in PriceMateApp constructor in main.dart
