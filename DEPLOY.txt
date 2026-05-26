@@ -1,0 +1,145 @@
+====================================================
+  PriceMate デプロイコマンド一覧
+====================================================
+
+----------------------------------------------------
+【前提条件】
+----------------------------------------------------
+- .env.json に GEMINI_API_KEY が設定済みであること
+- Firebase CLI インストール済み: npm install -g firebase-tools
+- Android: keystore ファイルと key.properties が設定済みであること
+- iOS: Xcode + Apple Developer アカウント、証明書/プロビジョニングプロファイル設定済みであること
+
+----------------------------------------------------
+【0. 共通: 依存関係取得】
+----------------------------------------------------
+flutter pub get
+
+----------------------------------------------------
+【1. コード品質確認】
+----------------------------------------------------
+# 静的解析
+flutter analyze
+
+# ビルド前にアイコン生成（icon.png 変更時のみ）
+flutter pub run flutter_launcher_icons
+
+----------------------------------------------------
+【2. Android】
+----------------------------------------------------
+
+# --- 署名設定（初回のみ） ---
+# リリース用 keystore 生成
+keytool -genkey -v -keystore android/app/upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 \
+  -alias upload
+
+# android/key.properties を作成（.gitignore に追加すること）
+# storePassword=<パスワード>
+# keyPassword=<パスワード>
+# keyAlias=upload
+# storeFile=upload-keystore.jks
+
+# build.gradle.kts の signingConfigs を key.properties 参照に変更してから実行:
+
+# --- APK ビルド（直配布用） ---
+flutter build apk --release --dart-define-from-file=.env.json
+
+# --- AAB ビルド（Google Play Store 用） ---
+flutter build appbundle --release --dart-define-from-file=.env.json
+
+# ビルド成果物の場所:
+#   APK: build/app/outputs/flutter-apk/app-release.apk
+#   AAB: build/app/outputs/bundle/release/app-release.aab
+
+# --- Google Play Console へのアップロード ---
+# 1. https://play.google.com/console にアクセス
+# 2. PriceMate (com.okstore.pricemate) を選択
+# 3. リリース → 内部テスト（または製品版）→ 新しいリリースを作成
+# 4. app-release.aab をアップロード
+
+# --- SHA-1 確認（Google Sign-In が動かない場合） ---
+# デバッグ用
+keytool -list -v -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android
+
+# リリース用
+keytool -list -v -keystore android/app/upload-keystore.jks \
+  -alias upload
+
+# → Firebase Console > プロジェクト設定 > Android アプリ > フィンガープリントを追加
+# → google-services.json を再ダウンロードして差し替え
+
+----------------------------------------------------
+【3. iOS】
+----------------------------------------------------
+
+# --- 証明書・プロビジョニング（初回のみ、Xcode で実施） ---
+# Xcode > Runner.xcworkspace を開く
+# Signing & Capabilities > Team を設定
+# Bundle Identifier: com.okstore.pricemate
+
+# --- IPA ビルド（App Store 用）---
+flutter build ipa --release --dart-define-from-file=.env.json
+
+# ビルド成果物の場所:
+#   build/ios/ipa/pricemate.ipa
+
+# --- App Store Connect へのアップロード ---
+# 方法A: Xcode Organizer を使う
+#   Product > Archive → Distribute App → App Store Connect
+
+# 方法B: xcrun altool (コマンドライン)
+xcrun altool --upload-app \
+  --type ios \
+  --file build/ios/ipa/pricemate.ipa \
+  --username "<Apple ID>" \
+  --password "<App 用パスワード>"
+
+# 方法C: Transporter アプリ（Mac App Store から無料）
+
+----------------------------------------------------
+【4. Firebase】
+----------------------------------------------------
+
+# ログイン
+firebase login
+
+# Firestore セキュリティルール デプロイ
+firebase deploy --only firestore:rules
+
+# Firestore インデックス デプロイ
+firebase deploy --only firestore:indexes
+
+# まとめてデプロイ
+firebase deploy --only firestore
+
+# firebase.json が未設定の場合は先に初期化:
+# firebase init firestore
+
+----------------------------------------------------
+【5. バージョン管理】
+----------------------------------------------------
+# pubspec.yaml の version を上げてからビルドすること
+# 例: 1.0.0+1 → 1.0.1+2
+#   versionName = 1.0.1 (ストア表示)
+#   versionCode = 2     (Android内部番号、毎リリース増加必須)
+
+----------------------------------------------------
+【6. 開発・動作確認用】
+----------------------------------------------------
+
+# 通常実行（接続済みデバイス/エミュレーター）
+flutter run --dart-define-from-file=.env.json
+
+# リリースビルドで実機確認
+flutter run --release --dart-define-from-file=.env.json
+
+# Firebase 無効でローカル UI 確認
+# main.dart の PriceMateApp(useFirebase: false) に変更してから:
+flutter run
+
+# Firebase 設定の再生成（google-services.json 変更後）
+flutterfire configure
+
+====================================================

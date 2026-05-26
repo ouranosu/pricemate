@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
@@ -22,9 +25,7 @@ Future<void> main() async {
   FlutterError.onError = (details) {
     final sb = StringBuffer();
     sb.writeln('FlutterError: ${details.exceptionAsString()}');
-    sb.writeln(
-      'schedulerPhase=${SchedulerBinding.instance.schedulerPhase}',
-    );
+    sb.writeln('schedulerPhase=${SchedulerBinding.instance.schedulerPhase}');
     if (details.informationCollector != null) {
       for (final info in details.informationCollector!()) {
         sb.writeln(info.toStringDeep());
@@ -145,6 +146,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
           title: 'PriceMate',
           debugShowCheckedModeBanner: false,
           navigatorObservers: [debugNavigatorObserver],
+          themeMode: ThemeMode.system,
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
@@ -152,6 +154,20 @@ class _PriceMateAppState extends State<PriceMateApp> {
               brightness: Brightness.light,
             ),
             scaffoldBackgroundColor: theme.scaffoldColor,
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              margin: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+              ),
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: theme.seedColor,
+              brightness: Brightness.dark,
+            ),
             cardTheme: const CardThemeData(
               elevation: 0,
               margin: EdgeInsets.zero,
@@ -175,7 +191,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
       return const SplashView();
     }
     if (!onboardingDone) {
-      return OnboardingView(onComplete: completeOnboarding);
+      return OnboardingView(onComplete: completeOnboarding, store: store);
     }
     if (widget.useFirebase) {
       return StreamBuilder<User?>(
@@ -271,6 +287,8 @@ enum Urgency { now, later }
 
 enum EntryMode { product, shoppingItem, purchase }
 
+enum ProductSort { nameAsc, bestPriceAsc, bestPriceDesc, recentFirst }
+
 class AppThemePreset {
   const AppThemePreset({
     required this.id,
@@ -325,8 +343,34 @@ const themePresets = [
   ),
 ];
 
-class SplashView extends StatelessWidget {
+class SplashView extends StatefulWidget {
   const SplashView({super.key});
+
+  @override
+  State<SplashView> createState() => _SplashViewState();
+}
+
+class _SplashViewState extends State<SplashView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,35 +379,38 @@ class SplashView extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(24),
+          child: FadeTransition(
+            opacity: _fade,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    Icons.shopping_basket_outlined,
+                    size: 44,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
                 ),
-                child: Icon(
-                  Icons.shopping_basket_outlined,
-                  size: 44,
-                  color: colorScheme.onPrimaryContainer,
+                const SizedBox(height: 20),
+                Text(
+                  'PriceMate',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'PriceMate',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+                const SizedBox(height: 8),
+                Text(
+                  '家族で使う買い物の価格メモ',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '家族で使う買い物の価格メモ',
-                style: TextStyle(color: colorScheme.onSurfaceVariant),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -372,41 +419,78 @@ class SplashView extends StatelessWidget {
 }
 
 class OnboardingView extends StatefulWidget {
-  const OnboardingView({super.key, required this.onComplete});
+  const OnboardingView({
+    super.key,
+    required this.onComplete,
+    required this.store,
+  });
 
   final VoidCallback onComplete;
+  final AppStore store;
 
   @override
   State<OnboardingView> createState() => _OnboardingViewState();
 }
 
 class _OnboardingViewState extends State<OnboardingView> {
-  final PageController controller = PageController();
-  int currentPage = 0;
+  final PageController _controller = PageController();
+  int _currentPage = 0;
+
+  static const int _totalPages = 6;
+
+  bool get _pageHasOwnNav => _currentPage == 3 || _currentPage == 4;
+  bool get _showSkip => _currentPage < 3;
+  bool get _isFinalPage => _currentPage == _totalPages - 1;
 
   @override
   void dispose() {
-    controller.dispose();
+    _controller.dispose();
     super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage == _totalPages - 1) {
+      widget.onComplete();
+      return;
+    }
+    _controller.nextPage(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = const [
-      _OnboardingPage(
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final pages = [
+      const _OnboardingPage(
         icon: Icons.price_check_outlined,
-        title: 'いつもの価格を共有',
-        message: 'ベスト価格と許容価格を家族で見られるので、買い物の判断がしやすくなります。',
+        body:
+            'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n'
+            '安かった金額を記録することで、スーパーで「これ高い？」と悩む時間をなくせます。',
       ),
-      _OnboardingPage(
-        icon: Icons.checklist_outlined,
-        title: '買うものを迷わない',
-        message: 'すぐ必要なものと、そのうち買うものを分けて、買い忘れを減らします。',
+      const _OnboardingPage(
+        icon: Icons.document_scanner_outlined,
+        body:
+            'レシートを撮るだけでAIが読み取り、買い物履歴を記録できます。\n\n'
+            '最近買った物を見返して、重複購入を防げます。',
       ),
+      const _OnboardingPage(
+        icon: Icons.favorite_outline_rounded,
+        body:
+            'プライスメイト最大の特徴は、パートナーと情報を共有できること。\n\n'
+            '買い物メモも商品の購入金額もパートナーと共有し、すれ違いの原因を一つ取り除きましょう。',
+      ),
+      _OnboardingInvitePage(store: widget.store, onNext: _nextPage),
+      _OnboardingTrackingPage(onNext: _nextPage),
       _OnboardingPage(
-        icon: Icons.group_outlined,
-        title: '家族みんなで使える',
-        message: '招待コードで共有スペースに参加し、同じ商品リストと買い物リストを使えます。',
+        icon: Icons.check_circle_outline_rounded,
+        body:
+            'お疲れ様でした。それでは始めましょう。\n\n'
+            'まずはレシートを読み取り、買い物履歴を登録するところから始めるのがオススメです。',
+        iconColor: colorScheme.primaryContainer,
+        iconOnColor: colorScheme.onPrimaryContainer,
       ),
     ];
 
@@ -416,41 +500,44 @@ class _OnboardingViewState extends State<OnboardingView> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: widget.onComplete,
-                  child: const Text('スキップ'),
-                ),
+              SizedBox(
+                height: 40,
+                child: _showSkip
+                    ? Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: widget.onComplete,
+                          child: const Text('スキップ'),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
               Expanded(
                 child: PageView(
-                  controller: controller,
-                  onPageChanged: (index) => setState(() => currentPage = index),
+                  controller: _controller,
+                  onPageChanged: (index) =>
+                      setState(() => _currentPage = index),
                   children: pages,
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
-                  pages.length,
-                  (index) => _PageDot(active: index == currentPage),
+                  _totalPages,
+                  (index) => _PageDot(active: index == _currentPage),
                 ),
               ),
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: () {
-                  if (currentPage == pages.length - 1) {
-                    widget.onComplete();
-                    return;
-                  }
-                  controller.nextPage(
-                    duration: const Duration(milliseconds: 240),
-                    curve: Curves.easeOut,
-                  );
-                },
-                child: Text(currentPage == pages.length - 1 ? 'はじめる' : '次へ'),
-              ),
+              if (!_pageHasOwnNav)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: _nextPage,
+                    child: Text(_isFinalPage ? 'はじめる' : '次へ'),
+                  ),
+                )
+              else
+                const SizedBox(height: 44),
             ],
           ),
         ),
@@ -462,48 +549,177 @@ class _OnboardingViewState extends State<OnboardingView> {
 class _OnboardingPage extends StatelessWidget {
   const _OnboardingPage({
     required this.icon,
-    required this.title,
-    required this.message,
+    required this.body,
+    this.iconColor,
+    this.iconOnColor,
   });
 
   final IconData icon;
-  final String title;
-  final String message;
+  final String body;
+  final Color? iconColor;
+  final Color? iconOnColor;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 112,
-          height: 112,
-          decoration: BoxDecoration(
-            color: colorScheme.secondaryContainer,
-            borderRadius: BorderRadius.circular(28),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: iconColor ?? colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(
+              icon,
+              size: 48,
+              color: iconOnColor ?? colorScheme.onSecondaryContainer,
+            ),
           ),
-          child: Icon(icon, size: 52, color: colorScheme.onSecondaryContainer),
-        ),
-        const SizedBox(height: 32),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            height: 1.55,
+          const SizedBox(height: 40),
+          Text(
+            body,
+            textAlign: TextAlign.start,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colorScheme.onSurface,
+              height: 1.75,
+              fontSize: 17,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingInvitePage extends StatelessWidget {
+  const _OnboardingInvitePage({required this.store, required this.onNext});
+
+  final AppStore store;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(
+              Icons.group_outlined,
+              size: 48,
+              color: colorScheme.onSecondaryContainer,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'パートナーはAさんが招待コードを発行し、Bさんが入力することで完了します。今すぐ誰かと共有しますか？',
+            textAlign: TextAlign.start,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colorScheme.onSurface,
+              height: 1.75,
+              fontSize: 17,
+            ),
+          ),
+          const SizedBox(height: 36),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () async {
+                await showInviteSheet(context, store);
+                onNext();
+              },
+              child: const Text('コードを発行する'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () async {
+                await showAcceptInviteSheet(context, store);
+                onNext();
+              },
+              child: const Text('コードを入力する'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(onPressed: onNext, child: const Text('今はスキップ')),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingTrackingPage extends StatelessWidget {
+  const _OnboardingTrackingPage({required this.onNext});
+
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              color: colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(
+              Icons.privacy_tip_outlined,
+              size: 48,
+              color: colorScheme.onTertiaryContainer,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            '広告の最適化のため、トラッキングの許可をお願いします。\n\n'
+            '許可しなくてもプライスメイトは問題なくご利用いただけます。',
+            textAlign: TextAlign.start,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colorScheme.onSurface,
+              height: 1.75,
+              fontSize: 17,
+            ),
+          ),
+          const SizedBox(height: 36),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () async {
+                if (Platform.isIOS) {
+                  await AppTrackingTransparency.requestTrackingAuthorization();
+                }
+                onNext();
+              },
+              child: const Text('許可する'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton(onPressed: onNext, child: const Text('スキップ')),
+        ],
+      ),
     );
   }
 }
@@ -702,22 +918,22 @@ class _LoginViewState extends State<LoginView> {
   Future<void> resetPassword() async {
     final email = emailController.text.trim();
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('メールアドレスを入力してからタップしてください')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('メールアドレスを入力してからタップしてください')));
       return;
     }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('パスワードリセットメールを送信しました')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('パスワードリセットメールを送信しました')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('送信に失敗しました。$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('送信に失敗しました。$error')));
     }
   }
 
@@ -920,9 +1136,12 @@ class AppStore extends ChangeNotifier {
   bool _connecting = false;
   bool _notifyScheduled = false;
 
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _shoppingSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _purchasesSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _shoppingSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _purchasesSubscription;
 
   final List<Product> products = [];
 
@@ -1201,42 +1420,55 @@ class AppStore extends ChangeNotifier {
     activeSpaceId = null;
   }
 
+  Future<void> leaveSharedSpace(String userId) async {
+    debugLog(
+      'leaveSharedSpace start userId=$userId currentSpace=$activeSpaceId',
+    );
+    final firestore = FirebaseFirestore.instance;
+    final userRef = firestore.collection('users').doc(userId);
+
+    await userRef.set({
+      'activeSpaceId': userId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final user = FirebaseAuth.instance.currentUser!;
+    await _ensurePersonalSpace(firestore, user);
+
+    activeSpaceId = userId;
+    stopListening();
+    startListening();
+    notifyStoreListeners('leaveSharedSpace');
+    debugLog('leaveSharedSpace done space=$activeSpaceId');
+  }
+
   void startListening() {
     debugLog('startListening start space=$activeSpaceId');
     if (activeSpaceId == null) {
       debugLog('startListening skipped: no activeSpaceId');
       return;
     }
-    _productsSubscription = _productsRef.snapshots().listen(
-      (snapshot) {
-        products
-          ..clear()
-          ..addAll(snapshot.docs.map(productFromDoc));
-        notifyStoreListeners('products:snapshot');
-      },
-      onError: (Object e) => debugLog('snapshot error: $e'),
-    );
-    _shoppingSubscription = _shoppingItemsRef.snapshots().listen(
-      (snapshot) {
-        shoppingItems
-          ..clear()
-          ..addAll(snapshot.docs.map(shoppingItemFromDoc));
-        notifyStoreListeners('shopping:snapshot');
-      },
-      onError: (Object e) => debugLog('snapshot error: $e'),
-    );
+    _productsSubscription = _productsRef.snapshots().listen((snapshot) {
+      products
+        ..clear()
+        ..addAll(snapshot.docs.map(productFromDoc));
+      notifyStoreListeners('products:snapshot');
+    }, onError: (Object e) => debugLog('snapshot error: $e'));
+    _shoppingSubscription = _shoppingItemsRef.snapshots().listen((snapshot) {
+      shoppingItems
+        ..clear()
+        ..addAll(snapshot.docs.map(shoppingItemFromDoc));
+      notifyStoreListeners('shopping:snapshot');
+    }, onError: (Object e) => debugLog('snapshot error: $e'));
     _purchasesSubscription = _purchaseRecordsRef
         .orderBy('purchasedAt', descending: true)
         .snapshots()
-        .listen(
-      (snapshot) {
-        purchaseRecords
-          ..clear()
-          ..addAll(snapshot.docs.map(purchaseRecordFromDoc));
-        notifyStoreListeners('purchases:snapshot');
-      },
-      onError: (Object e) => debugLog('snapshot error: $e'),
-    );
+        .listen((snapshot) {
+          purchaseRecords
+            ..clear()
+            ..addAll(snapshot.docs.map(purchaseRecordFromDoc));
+          notifyStoreListeners('purchases:snapshot');
+        }, onError: (Object e) => debugLog('snapshot error: $e'));
   }
 
   void stopListening() {
@@ -1299,14 +1531,16 @@ class AppStore extends ChangeNotifier {
 
   void addPurchaseRecordsFromReceipt(ReceiptParseResult result) {
     for (final item in result.items) {
-      addPurchaseRecord(PurchaseRecord(
-        id: _id,
-        productName: item.name,
-        storeName: result.storeName,
-        price: item.price,
-        purchasedAt: result.purchasedAt,
-        source: 'receipt_ocr',
-      ));
+      addPurchaseRecord(
+        PurchaseRecord(
+          id: _id,
+          productName: item.name,
+          storeName: result.storeName,
+          price: item.price,
+          purchasedAt: result.purchasedAt,
+          source: 'receipt_ocr',
+        ),
+      );
     }
   }
 
@@ -1385,6 +1619,28 @@ class AppStore extends ChangeNotifier {
           .set(purchaseRecordToMap(savedRecord));
     }
     notifyStoreListeners('addPurchaseRecord:${savedRecord.id}');
+  }
+
+  void deletePurchaseRecord(PurchaseRecord record) {
+    purchaseRecords.removeWhere((r) => r.id == record.id);
+    if (activeSpaceId != null) {
+      _purchaseRecordsRef.doc(record.id).delete();
+    }
+    notifyStoreListeners('deletePurchaseRecord:${record.id}');
+  }
+
+  void updatePurchaseRecord(PurchaseRecord record) {
+    final index = purchaseRecords.indexWhere((r) => r.id == record.id);
+    if (index == -1) {
+      debugLog('updatePurchaseRecord missing id=${record.id}; inserting');
+      purchaseRecords.insert(0, record);
+    } else {
+      purchaseRecords[index] = record;
+    }
+    if (activeSpaceId != null) {
+      _purchaseRecordsRef.doc(record.id).set(purchaseRecordToMap(record));
+    }
+    notifyStoreListeners('updatePurchaseRecord:${record.id}');
   }
 
   Map<String, dynamic> productToMap(Product product) {
@@ -1508,9 +1764,13 @@ class _PriceMateShellState extends State<PriceMateShell> {
         centerTitle: false,
         actions: [
           IconButton(
-            tooltip: '通知',
+            tooltip: '通知（近日公開）',
             icon: const Icon(Icons.notifications_none),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('通知機能は近日公開予定です')),
+              );
+            },
           ),
         ],
       ),
@@ -1521,68 +1781,79 @@ class _PriceMateShellState extends State<PriceMateShell> {
           onLogout: widget.onLogout,
         ),
       ),
-      floatingActionButton: SizedBox(
-        width: 64,
-        height: 64,
-        child: FloatingActionButton(
-          tooltip: '入力',
-          shape: const CircleBorder(),
-          onPressed: () {
-            debugLog('FAB tap input');
-            setState(() => selectedIndex = 2);
-          },
-          child: const Icon(Icons.add, size: 32),
-        ),
+      floatingActionButton: FloatingActionButton(
+        tooltip: '入力',
+        onPressed: () {
+          debugLog('FAB tap input');
+          setState(() => selectedIndex = 5);
+        },
+        child: const Icon(Icons.add, size: 28),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomAppBar(
-        height: 74,
+        height: 64,
         padding: EdgeInsets.zero,
-        notchMargin: 8,
-        shape: const CircularNotchedRectangle(),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _TabButton(
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home,
-              label: 'ホーム',
-              active: selectedIndex == 0,
-              onTap: () {
-                debugLog('Tab tap home');
-                setState(() => selectedIndex = 0);
-              },
+            Expanded(
+              child: _TabButton(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home,
+                label: 'ホーム',
+                active: selectedIndex == 0,
+                onTap: () {
+                  debugLog('Tab tap home');
+                  setState(() => selectedIndex = 0);
+                },
+              ),
             ),
-            _TabButton(
-              icon: Icons.checklist_outlined,
-              activeIcon: Icons.checklist,
-              label: '買い物',
-              active: selectedIndex == 1,
-              onTap: () {
-                debugLog('Tab tap shopping');
-                setState(() => selectedIndex = 1);
-              },
+            Expanded(
+              child: _TabButton(
+                icon: Icons.checklist_outlined,
+                activeIcon: Icons.checklist,
+                label: '買い物',
+                active: selectedIndex == 1,
+                onTap: () {
+                  debugLog('Tab tap shopping');
+                  setState(() => selectedIndex = 1);
+                },
+              ),
             ),
-            const SizedBox(width: 72),
-            _TabButton(
-              icon: Icons.inventory_2_outlined,
-              activeIcon: Icons.inventory_2,
-              label: '商品',
-              active: selectedIndex == 3,
-              onTap: () {
-                debugLog('Tab tap products');
-                setState(() => selectedIndex = 3);
-              },
+            Expanded(
+              child: _TabButton(
+                icon: Icons.history,
+                activeIcon: Icons.history,
+                label: '履歴',
+                active: selectedIndex == 2,
+                onTap: () {
+                  debugLog('Tab tap history');
+                  setState(() => selectedIndex = 2);
+                },
+              ),
             ),
-            _TabButton(
-              icon: Icons.settings_outlined,
-              activeIcon: Icons.settings,
-              label: '設定',
-              active: selectedIndex == 4,
-              onTap: () {
-                debugLog('Tab tap settings');
-                setState(() => selectedIndex = 4);
-              },
+            Expanded(
+              child: _TabButton(
+                icon: Icons.inventory_2_outlined,
+                activeIcon: Icons.inventory_2,
+                label: '商品',
+                active: selectedIndex == 3,
+                onTap: () {
+                  debugLog('Tab tap products');
+                  setState(() => selectedIndex = 3);
+                },
+              ),
+            ),
+            Expanded(
+              child: _TabButton(
+                icon: Icons.settings_outlined,
+                activeIcon: Icons.settings,
+                label: '設定',
+                active: selectedIndex == 4,
+                onTap: () {
+                  debugLog('Tab tap settings');
+                  setState(() => selectedIndex = 4);
+                },
+              ),
             ),
           ],
         ),
@@ -1611,13 +1882,23 @@ class _StorePage extends StatelessWidget {
           'StorePage rebuild selectedIndex=$selectedIndex '
           'space=${store.activeSpaceId}',
         );
-        return switch (selectedIndex) {
+        final page = switch (selectedIndex) {
           0 => HomeView(store: store),
           1 => ShoppingListView(store: store),
-          2 => InputView(store: store),
+          2 => PurchaseHistoryView(store: store),
           3 => ProductListView(store: store),
-          _ => SettingsView(store: store, onLogout: onLogout),
+          4 => SettingsView(store: store, onLogout: onLogout),
+          _ => InputView(store: store),
         };
+        // key はタブインデックスのみに依存させ、Firestoreスナップショットによる
+        // store の再通知では selectedIndex が変わらないためアニメーションを発火しない
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: KeyedSubtree(
+            key: ValueKey<int>(selectedIndex),
+            child: page,
+          ),
+        );
       },
     );
   }
@@ -1640,22 +1921,37 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: 64,
-        height: 64,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(active ? activeIcon : icon, color: color),
-            const SizedBox(height: 3),
-            Text(label, style: TextStyle(color: color, fontSize: 11)),
-          ],
+    final colorScheme = Theme.of(context).colorScheme;
+    final color =
+        active ? colorScheme.primary : colorScheme.onSurfaceVariant;
+    return Semantics(
+      label: label,
+      selected: active,
+      button: true,
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 64,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: active ? 28 : 0,
+                height: 3,
+                margin: const EdgeInsets.only(bottom: 4),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Icon(active ? activeIcon : icon, color: color),
+              const SizedBox(height: 3),
+              Text(label, style: TextStyle(color: color, fontSize: 11)),
+            ],
+          ),
         ),
       ),
     );
@@ -1690,7 +1986,9 @@ class HomeView extends StatelessWidget {
         children: [
           Text(
             'ホーム',
-            style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -1727,8 +2025,9 @@ class HomeView extends StatelessWidget {
                       child: Text(
                         '今日の特売なし',
                         style: TextStyle(
-                          color: colorScheme.onTertiaryContainer
-                              .withValues(alpha: 0.55),
+                          color: colorScheme.onTertiaryContainer.withValues(
+                            alpha: 0.55,
+                          ),
                           fontSize: 12,
                         ),
                       ),
@@ -1800,8 +2099,9 @@ class HomeView extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: colorScheme.onPrimaryContainer
-                              .withValues(alpha: 0.7),
+                          color: colorScheme.onPrimaryContainer.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                   ],
@@ -1814,8 +2114,9 @@ class HomeView extends StatelessWidget {
                       child: Text(
                         'すぐ必要なものはありません',
                         style: TextStyle(
-                          color: colorScheme.onPrimaryContainer
-                              .withValues(alpha: 0.55),
+                          color: colorScheme.onPrimaryContainer.withValues(
+                            alpha: 0.55,
+                          ),
                           fontSize: 12,
                         ),
                       ),
@@ -1830,8 +2131,9 @@ class HomeView extends StatelessWidget {
                           Icon(
                             Icons.circle,
                             size: 6,
-                            color: colorScheme.onPrimaryContainer
-                                .withValues(alpha: 0.6),
+                            color: colorScheme.onPrimaryContainer.withValues(
+                              alpha: 0.6,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1856,61 +2158,71 @@ class HomeView extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // ── Bento row 3: 最近の購入履歴（画面幅の約半分） ────────────────
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.5,
-              child: _BentoCard(
-                color: colorScheme.surfaceContainerHighest,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // ── Bento row 3: 最近の購入履歴（全幅） ─────────────────────────
+          _BentoCard(
+            color: colorScheme.surfaceContainerHighest,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          color: colorScheme.onSurfaceVariant,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '最近の購入',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSurface,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.receipt_long_outlined,
+                      color: colorScheme.onSurfaceVariant,
+                      size: 16,
                     ),
-                    const SizedBox(height: 12),
-                    if (store.purchaseRecords.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          '履歴なし',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      )
-                    else
-                      ...store.purchaseRecords.take(3).map((record) {
-                        return Padding(
+                    const SizedBox(width: 6),
+                    Text(
+                      '最近の購入',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (store.purchaseRecords.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      '履歴なし',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  )
+                else
+                  ...store.purchaseRecords.take(3).map((record) {
+                    return Dismissible(
+                      key: ValueKey(record.id),
+                      direction: DismissDirection.endToStart,
+                      background: const _DeleteBackground(),
+                      onDismissed: (_) {
+                        HapticFeedback.mediumImpact();
+                        debugLog('Dismiss purchase record id=${record.id}');
+                        store.deletePurchaseRecord(record);
+                      },
+                      child: InkWell(
+                        onTap: () =>
+                            showPurchaseSheet(context, store, record: record),
+                        child: Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(
-                                record.productName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
+                              Expanded(
+                                child: Text(
+                                  record.productName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 formatYen(record.price),
@@ -1922,11 +2234,11 @@ class HomeView extends StatelessWidget {
                               ),
                             ],
                           ),
-                        );
-                      }),
-                  ],
-                ),
-              ),
+                        ),
+                      ),
+                    );
+                  }),
+              ],
             ),
           ),
         ],
@@ -1955,54 +2267,255 @@ class ShoppingListView extends StatelessWidget {
         store.startListening();
       },
       child: ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      children: [
-        _ViewTitle(
-          title: '買うものリスト',
-          subtitle: 'スワイプで削除、タップで編集できます。',
-          action: IconButton.filledTonal(
-            tooltip: '買うものを追加',
-            icon: const Icon(Icons.add),
-            onPressed: () => showShoppingItemSheet(context, store),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          _ViewTitle(
+            title: '買うものリスト',
+            subtitle: 'スワイプで削除、タップで編集できます。',
+            action: IconButton.filledTonal(
+              tooltip: '買うものを追加',
+              icon: const Icon(Icons.add),
+              onPressed: () => showShoppingItemSheet(context, store),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        if (sorted.isEmpty)
-          const _EmptyMessage(message: '買うものはまだありません。')
-        else
-          ...sorted.map((item) {
-            return Dismissible(
-              key: ValueKey(item.id),
-              direction: DismissDirection.endToStart,
-              background: const _DeleteBackground(),
-              onDismissed: (_) {
-                debugLog('Dismiss shopping item id=${item.id}');
-                store.deleteShoppingItem(item);
-              },
-              child: Card(
-                child: ListTile(
-                  leading: Checkbox(
-                    value: item.checked,
-                    onChanged: (_) => store.toggleShoppingItem(item),
-                  ),
-                  title: Text(
-                    item.name,
-                    style: TextStyle(
-                      decoration: item.checked
-                          ? TextDecoration.lineThrough
-                          : null,
-                      fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          if (sorted.isEmpty)
+            const _EmptyMessage(message: '買うものはまだありません。')
+          else
+            ...sorted.map((item) {
+              return Dismissible(
+                key: ValueKey(item.id),
+                direction: DismissDirection.endToStart,
+                background: const _DeleteBackground(),
+                onDismissed: (_) {
+                  HapticFeedback.mediumImpact();
+                  debugLog('Dismiss shopping item id=${item.id}');
+                  store.deleteShoppingItem(item);
+                },
+                child: Card(
+                  child: ListTile(
+                    leading: Checkbox(
+                      value: item.checked,
+                      onChanged: (_) {
+                        HapticFeedback.lightImpact();
+                        store.toggleShoppingItem(item);
+                      },
                     ),
+                    title: Text(
+                      item.name,
+                      style: TextStyle(
+                        decoration: item.checked
+                            ? TextDecoration.lineThrough
+                            : null,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      item.urgency == Urgency.now ? 'すぐ必要' : 'そのうち',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        showShoppingItemSheet(context, store, item: item),
                   ),
-                  subtitle: Text(item.urgency == Urgency.now ? 'すぐ必要' : 'そのうち'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      showShoppingItemSheet(context, store, item: item),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> _showAddPurchaseSheet(BuildContext context, AppStore store) {
+  return showModalBottomSheet<void>(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('手動で登録'),
+            onTap: () {
+              Navigator.pop(ctx);
+              showPurchaseSheet(context, store);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.document_scanner_outlined),
+            title: const Text('レシートを読み取る'),
+            onTap: () {
+              Navigator.pop(ctx);
+              showReceiptFlow(context, store);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class PurchaseHistoryView extends StatefulWidget {
+  const PurchaseHistoryView({super.key, required this.store});
+
+  final AppStore store;
+
+  @override
+  State<PurchaseHistoryView> createState() => _PurchaseHistoryViewState();
+}
+
+class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<PurchaseRecord> get _filtered {
+    if (_query.isEmpty) return widget.store.purchaseRecords;
+    return widget.store.purchaseRecords.where((r) {
+      return r.productName.toLowerCase().contains(_query) ||
+          r.storeName.toLowerCase().contains(_query);
+    }).toList();
+  }
+
+  // 月ごとにグループ化し、ヘッダー文字列とレコードを交互に並べたフラットリストを返す
+  List<Object> _buildFlatList(List<PurchaseRecord> records) {
+    final map = <String, List<PurchaseRecord>>{};
+    for (final r in records) {
+      final key = '${r.purchasedAt.year}年${r.purchasedAt.month}月';
+      (map[key] ??= []).add(r);
+    }
+    final flat = <Object>[];
+    for (final entry in map.entries) {
+      flat.add(entry.key);
+      flat.addAll(entry.value);
+    }
+    return flat;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final filtered = _filtered;
+    final flatList = _buildFlatList(filtered);
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        if (widget.store.activeSpaceId == null) return;
+        widget.store.stopListening();
+        widget.store.startListening();
+      },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+            child: _ViewTitle(
+              title: '購入履歴',
+              subtitle: 'スワイプで削除、タップで編集できます。',
+              action: IconButton.filledTonal(
+                tooltip: '購入履歴を追加',
+                icon: const Icon(Icons.add),
+                onPressed: () => _showAddPurchaseSheet(context, widget.store),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: '商品名・店舗名で検索',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _searchController.clear(),
+                      )
+                    : null,
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            );
-          }),
-      ],
+            ),
+          ),
+          Expanded(
+            child: widget.store.purchaseRecords.isEmpty
+                ? const _EmptyMessage(message: '購入履歴はまだありません。')
+                : filtered.isEmpty
+                ? const _EmptyMessage(message: '検索結果がありません。')
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    itemCount: flatList.length,
+                    itemBuilder: (context, index) {
+                      final item = flatList[index];
+                      if (item is String) {
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
+                          child: Text(
+                            item,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        );
+                      }
+                      final record = item as PurchaseRecord;
+                      return Dismissible(
+                        key: ValueKey(record.id),
+                        direction: DismissDirection.endToStart,
+                        background: const _DeleteBackground(),
+                        onDismissed: (_) {
+                          HapticFeedback.mediumImpact();
+                          debugLog('Dismiss purchase record id=${record.id}');
+                          widget.store.deletePurchaseRecord(record);
+                        },
+                        child: Card(
+                          child: ListTile(
+                            title: Text(
+                              record.productName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${record.storeName}  '
+                              '${record.purchasedAt.year}/${record.purchasedAt.month.toString().padLeft(2, '0')}/'
+                              '${record.purchasedAt.day.toString().padLeft(2, '0')}',
+                            ),
+                            trailing: Text(
+                              formatYen(record.price),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            onTap: () => showPurchaseSheet(
+                              context,
+                              widget.store,
+                              record: record,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -2092,6 +2605,7 @@ class _ProductListViewState extends State<ProductListView> {
   final _searchController = TextEditingController();
   String _query = '';
   String? _categoryFilter;
+  ProductSort _sort = ProductSort.recentFirst;
 
   @override
   void initState() {
@@ -2108,8 +2622,9 @@ class _ProductListViewState extends State<ProductListView> {
   }
 
   List<Product> get _filtered {
-    return widget.store.products.where((p) {
-      final matchesQuery = _query.isEmpty ||
+    final list = widget.store.products.where((p) {
+      final matchesQuery =
+          _query.isEmpty ||
           p.name.toLowerCase().contains(_query) ||
           p.storeName.toLowerCase().contains(_query) ||
           categoryLabel(p.category).toLowerCase().contains(_query);
@@ -2117,6 +2632,55 @@ class _ProductListViewState extends State<ProductListView> {
           _categoryFilter == null || p.category == _categoryFilter;
       return matchesQuery && matchesCategory;
     }).toList();
+    switch (_sort) {
+      case ProductSort.nameAsc:
+        list.sort((a, b) => a.name.compareTo(b.name));
+      case ProductSort.bestPriceAsc:
+        list.sort((a, b) => a.bestPrice.compareTo(b.bestPrice));
+      case ProductSort.bestPriceDesc:
+        list.sort((a, b) => b.bestPrice.compareTo(a.bestPrice));
+      case ProductSort.recentFirst:
+        break;
+    }
+    return list;
+  }
+
+  void _showSortSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                  child: _SheetTitle(title: '並び替え'),
+                ),
+                for (final (value, label) in [
+                  (ProductSort.recentFirst, '最近追加順'),
+                  (ProductSort.nameAsc, '名前順（A→Z）'),
+                  (ProductSort.bestPriceAsc, 'ベスト価格が安い順'),
+                  (ProductSort.bestPriceDesc, 'ベスト価格が高い順'),
+                ])
+                  ListTile(
+                    title: Text(label),
+                    trailing: _sort == value ? const Icon(Icons.check) : null,
+                    selected: _sort == value,
+                    onTap: () {
+                      setState(() => _sort = value);
+                      Navigator.pop(ctx);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Set<String> get _usedCategoryIds =>
@@ -2126,8 +2690,9 @@ class _ProductListViewState extends State<ProductListView> {
   Widget build(BuildContext context) {
     final filtered = _filtered;
     final usedIds = _usedCategoryIds;
-    final visibleCategories =
-        productCategories.where((c) => usedIds.contains(c.id)).toList();
+    final visibleCategories = productCategories
+        .where((c) => usedIds.contains(c.id))
+        .toList();
     return RefreshIndicator(
       onRefresh: () async {
         if (widget.store.activeSpaceId == null) return;
@@ -2140,10 +2705,20 @@ class _ProductListViewState extends State<ProductListView> {
           _ViewTitle(
             title: '商品リスト',
             subtitle: '家庭内の価格基準を一覧できます。',
-            action: IconButton.filledTonal(
-              tooltip: '商品を追加',
-              icon: const Icon(Icons.add),
-              onPressed: () => showProductSheet(context, widget.store),
+            action: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: '並び替え',
+                  icon: const Icon(Icons.sort),
+                  onPressed: () => _showSortSheet(context),
+                ),
+                IconButton.filledTonal(
+                  tooltip: '商品を追加',
+                  icon: const Icon(Icons.add),
+                  onPressed: () => showProductSheet(context, widget.store),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -2173,8 +2748,7 @@ class _ProductListViewState extends State<ProductListView> {
                   FilterChip(
                     label: const Text('すべて'),
                     selected: _categoryFilter == null,
-                    onSelected: (_) =>
-                        setState(() => _categoryFilter = null),
+                    onSelected: (_) => setState(() => _categoryFilter = null),
                   ),
                   ...visibleCategories.map((cat) {
                     return Padding(
@@ -2208,6 +2782,7 @@ class _ProductListViewState extends State<ProductListView> {
                 direction: DismissDirection.endToStart,
                 background: const _DeleteBackground(),
                 onDismissed: (_) {
+                  HapticFeedback.mediumImpact();
                   debugLog('Dismiss product id=${product.id}');
                   widget.store.deleteProduct(product);
                 },
@@ -2223,10 +2798,16 @@ class _ProductListViewState extends State<ProductListView> {
                     ),
                     isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () =>
-                        showProductSheet(context, widget.store, product: product),
-                    onLongPress: () =>
-                        showPurchaseSheet(context, widget.store, product: product),
+                    onTap: () => showProductSheet(
+                      context,
+                      widget.store,
+                      product: product,
+                    ),
+                    onLongPress: () => showPurchaseSheet(
+                      context,
+                      widget.store,
+                      product: product,
+                    ),
                   ),
                 ),
               );
@@ -2245,6 +2826,7 @@ class SettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
@@ -2283,6 +2865,15 @@ class SettingsView extends StatelessWidget {
                 title: '家族メンバー管理',
                 onTap: () => showMembersSheet(context, store),
               ),
+              if (store.activeSpaceId != null &&
+                  store.activeSpaceId != store.activeUserId) ...[
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.exit_to_app_outlined,
+                  title: 'スペースを離れる',
+                  onTap: () => _confirmLeaveSpace(context, store),
+                ),
+              ],
             ],
           ),
         ),
@@ -2327,9 +2918,7 @@ class SettingsView extends StatelessWidget {
                   context: context,
                   builder: (dialogContext) => AlertDialog(
                     title: const Text('スペシャルサンクス'),
-                    content: const Text(
-                      'このアプリの開発にご協力いただいた皆さまに感謝します。',
-                    ),
+                    content: const Text('このアプリの開発にご協力いただいた皆さまに感謝します。'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
@@ -2353,6 +2942,13 @@ class SettingsView extends StatelessWidget {
           onPressed: onLogout,
           icon: const Icon(Icons.logout),
           label: const Text('ログアウト'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
+          onPressed: () => _confirmDeleteAccount(context, store, onLogout),
+          icon: const Icon(Icons.delete_forever_outlined),
+          label: const Text('アカウントを削除'),
         ),
       ],
     );
@@ -2393,165 +2989,198 @@ Future<void> showProductSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              MediaQuery.of(context).viewInsets.bottom + 20,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+          return DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.88,
+            minChildSize: 0.5,
+            maxChildSize: 1.0,
+            builder: (ctx2, scrollController) {
+              return Column(
                 children: [
-                  _SheetTitle(title: product == null ? '商品を登録' : '商品を編集'),
-                  TextField(
-                    controller: name,
-                    decoration: const InputDecoration(labelText: '商品名'),
-                  ),
-                  TextField(
-                    controller: storeName,
-                    decoration: const InputDecoration(labelText: '店舗名'),
-                  ),
-                  TextField(
-                    controller: size,
-                    decoration: const InputDecoration(labelText: 'サイズ（任意）'),
-                  ),
-                  TextField(
-                    controller: bestPrice,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'ベスト価格'),
-                  ),
-                  TextField(
-                    controller: acceptablePrice,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '許容価格'),
-                  ),
-                  TextField(
-                    controller: memo,
-                    decoration: const InputDecoration(labelText: 'メモ（任意）'),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'カテゴリー',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: productCategories.map((cat) {
-                      return FilterChip(
-                        label: Text(cat.label),
-                        selected: selectedCategory == cat.id,
-                        onSelected: (selected) {
-                          setSheetState(() {
-                            selectedCategory = selected ? cat.id : null;
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '特売日',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: List.generate(7, (index) {
-                      final weekday = index + 1;
-                      return FilterChip(
-                        label: Text(weekdayLabels[index]),
-                        selected: saleDays.contains(weekday),
-                        onSelected: (selected) {
-                          setSheetState(() {
-                            selected
-                                ? saleDays.add(weekday)
-                                : saleDays.remove(weekday);
-                          });
-                        },
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
-                  FilledButton(
-                    // Duration.zero prevents AnimatedDefaultTextStyle from
-                    // starting a Ticker when the button goes disabled, avoiding
-                    // the "wrong build scope" assertion in newer Flutter.
-                    style: const ButtonStyle(
-                      animationDuration: Duration.zero,
+                  // ドラッグハンドル
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    onPressed: isProcessing
-                        ? null
-                        : () {
-                            final nameVal = name.text.trim();
-                            final storeNameVal = storeName.text.trim();
-                            final bestPriceVal = int.tryParse(bestPrice.text) ?? 0;
-                            final acceptablePriceVal = int.tryParse(acceptablePrice.text) ?? 0;
-                            String? validationError;
-                            if (nameVal.isEmpty) {
-                              validationError = '商品名を入力してください';
-                            } else if (storeNameVal.isEmpty) {
-                              validationError = '店舗名を入力してください';
-                            } else if (bestPriceVal == 0) {
-                              validationError = 'ベスト価格を入力してください';
-                            } else if (acceptablePriceVal < bestPriceVal) {
-                              validationError = '許容価格はベスト価格以上にしてください';
-                            }
-                            if (validationError != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(validationError)),
-                              );
-                              return;
-                            }
-                            debugLog(
-                              'showProductSheet safeClose '
-                              'phase=${SchedulerBinding.instance.schedulerPhase}',
+                  ),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: EdgeInsets.fromLTRB(
+                        20,
+                        8,
+                        20,
+                        MediaQuery.viewInsetsOf(context).bottom + 20,
+                      ),
+                      children: [
+                        _SheetTitle(
+                          title: product == null ? '商品を登録' : '商品を編集',
+                        ),
+                        TextField(
+                          controller: name,
+                          decoration: const InputDecoration(labelText: '商品名'),
+                        ),
+                        TextField(
+                          controller: storeName,
+                          decoration: const InputDecoration(labelText: '店舗名'),
+                        ),
+                        TextField(
+                          controller: size,
+                          decoration:
+                              const InputDecoration(labelText: 'サイズ（任意）'),
+                        ),
+                        TextField(
+                          controller: bestPrice,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'ベスト価格'),
+                        ),
+                        TextField(
+                          controller: acceptablePrice,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: '許容価格'),
+                        ),
+                        TextField(
+                          controller: memo,
+                          decoration: const InputDecoration(labelText: 'メモ（任意）'),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'カテゴリー',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: productCategories.map((cat) {
+                            return FilterChip(
+                              label: Text(cat.label),
+                              selected: selectedCategory == cat.id,
+                              onSelected: (selected) {
+                                setSheetState(() {
+                                  selectedCategory =
+                                      selected ? cat.id : null;
+                                });
+                              },
                             );
-                            final saved = Product(
-                              id: product?.id ?? 'new',
-                              name: name.text.trim(),
-                              storeName: storeName.text.trim(),
-                              size: size.text.trim().isEmpty
-                                  ? null
-                                  : size.text.trim(),
-                              bestPrice: int.tryParse(bestPrice.text) ?? 0,
-                              acceptablePrice:
-                                  int.tryParse(acceptablePrice.text) ?? 0,
-                              saleDays: saleDays,
-                              memo: memo.text.trim().isEmpty
-                                  ? null
-                                  : memo.text.trim(),
-                              category: selectedCategory,
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          '特売日',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: List.generate(7, (index) {
+                            final weekday = index + 1;
+                            return FilterChip(
+                              label: Text(weekdayLabels[index]),
+                              selected: saleDays.contains(weekday),
+                              onSelected: (selected) {
+                                setSheetState(() {
+                                  selected
+                                      ? saleDays.add(weekday)
+                                      : saleDays.remove(weekday);
+                                });
+                              },
                             );
-                            // setSheetState disables the button (onPressed→null),
-                            // which causes InkResponse to call cancel() on the
-                            // active InkRipple, clearing its InheritedWidget
-                            // dependents before the modal is removed.
-                            // animationDuration:zero on the button ensures that
-                            // the resulting text-style change completes instantly
-                            // (no Ticker) so it cannot fire markNeedsBuild() in
-                            // the wrong build scope on a later frame.
-                            setSheetState(() {
-                              debugLog('showProductSheet setSheetState isProcessing=true');
-                              isProcessing = true;
-                            });
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              debugLog(
-                                'showProductSheet popCallback mounted=${context.mounted} '
-                                'phase=${SchedulerBinding.instance.schedulerPhase}',
-                              );
-                              if (context.mounted) Navigator.pop(context, saved);
-                            });
-                          },
-                    child: const Text('保存'),
+                          }),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                          // Duration.zero prevents AnimatedDefaultTextStyle from
+                          // starting a Ticker when the button goes disabled,
+                          // avoiding the "wrong build scope" assertion.
+                          style: const ButtonStyle(
+                            animationDuration: Duration.zero,
+                          ),
+                          onPressed: isProcessing
+                              ? null
+                              : () {
+                                  final nameVal = name.text.trim();
+                                  final storeNameVal = storeName.text.trim();
+                                  final bestPriceVal =
+                                      int.tryParse(bestPrice.text) ?? 0;
+                                  final acceptablePriceVal =
+                                      int.tryParse(acceptablePrice.text) ?? 0;
+                                  String? validationError;
+                                  if (nameVal.isEmpty) {
+                                    validationError = '商品名を入力してください';
+                                  } else if (storeNameVal.isEmpty) {
+                                    validationError = '店舗名を入力してください';
+                                  } else if (bestPriceVal == 0) {
+                                    validationError = 'ベスト価格を入力してください';
+                                  } else if (acceptablePriceVal < bestPriceVal) {
+                                    validationError = '許容価格はベスト価格以上にしてください';
+                                  }
+                                  if (validationError != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(validationError),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  debugLog(
+                                    'showProductSheet safeClose '
+                                    'phase=${SchedulerBinding.instance.schedulerPhase}',
+                                  );
+                                  final saved = Product(
+                                    id: product?.id ?? 'new',
+                                    name: name.text.trim(),
+                                    storeName: storeName.text.trim(),
+                                    size: size.text.trim().isEmpty
+                                        ? null
+                                        : size.text.trim(),
+                                    bestPrice:
+                                        int.tryParse(bestPrice.text) ?? 0,
+                                    acceptablePrice:
+                                        int.tryParse(acceptablePrice.text) ??
+                                        0,
+                                    saleDays: saleDays,
+                                    memo: memo.text.trim().isEmpty
+                                        ? null
+                                        : memo.text.trim(),
+                                    category: selectedCategory,
+                                  );
+                                  // setSheetState disables the button
+                                  // (onPressed→null), which causes InkResponse
+                                  // to call cancel() on the active InkRipple,
+                                  // clearing InheritedWidget dependents before
+                                  // the modal is removed.
+                                  setSheetState(() {
+                                    debugLog(
+                                      'showProductSheet setSheetState isProcessing=true',
+                                    );
+                                    isProcessing = true;
+                                  });
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
+                                    debugLog(
+                                      'showProductSheet popCallback mounted=${context.mounted} '
+                                      'phase=${SchedulerBinding.instance.schedulerPhase}',
+                                    );
+                                    if (context.mounted) {
+                                      Navigator.pop(context, saved);
+                                    }
+                                  });
+                                },
+                          child: const Text('保存'),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
           );
         },
       );
@@ -2580,6 +3209,11 @@ Future<void> showProductSheet(
     memo.dispose();
     if (result != null) {
       store.upsertProduct(product, result);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(product == null ? '商品を登録しました' : '商品を更新しました')),
+        );
+      }
     }
   }
 
@@ -2593,6 +3227,7 @@ Future<void> showProductSheet(
         finalizeProductSheet();
       }
     }
+
     anim.addStatusListener(onStatus);
   }
 }
@@ -2665,7 +3300,9 @@ Future<void> showShoppingItemSheet(
                             checked: item?.checked ?? false,
                           );
                           setSheetState(() {
-                            debugLog('showShoppingItemSheet setSheetState isProcessing=true');
+                            debugLog(
+                              'showShoppingItemSheet setSheetState isProcessing=true',
+                            );
                             isProcessing = true;
                           });
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2699,6 +3336,13 @@ Future<void> showShoppingItemSheet(
     name.dispose();
     if (savedItem != null) {
       store.upsertShoppingItem(item, savedItem);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(item == null ? '買うものを追加しました' : '買うものを更新しました'),
+          ),
+        );
+      }
     }
   }
 
@@ -2712,6 +3356,7 @@ Future<void> showShoppingItemSheet(
         finalizeShoppingSheet();
       }
     }
+
     anim.addStatusListener(onStatus);
   }
 }
@@ -2720,14 +3365,21 @@ Future<void> showPurchaseSheet(
   BuildContext context,
   AppStore store, {
   Product? product,
+  PurchaseRecord? record,
 }) async {
-  final productName = TextEditingController(text: product?.name ?? '');
-  final storeName = TextEditingController(text: product?.storeName ?? '');
-  final price = TextEditingController();
+  final productName = TextEditingController(
+    text: product?.name ?? record?.productName ?? '',
+  );
+  final storeName = TextEditingController(
+    text: product?.storeName ?? record?.storeName ?? '',
+  );
+  final price = TextEditingController(text: record?.price.toString() ?? '');
   var isProcessing = false;
   Animation<double>? sheetAnimation;
 
-  debugLog('showPurchaseSheet open product=${product?.id}');
+  debugLog(
+    'showPurchaseSheet open product=${product?.id} record=${record?.id}',
+  );
   final result = await showModalBottomSheet<PurchaseRecord>(
     context: context,
     isScrollControlled: true,
@@ -2747,7 +3399,7 @@ Future<void> showPurchaseSheet(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _SheetTitle(title: '購入履歴を登録'),
+                _SheetTitle(title: record == null ? '購入履歴を登録' : '購入履歴を編集'),
                 TextField(
                   controller: productName,
                   decoration: const InputDecoration(labelText: '商品名'),
@@ -2785,16 +3437,18 @@ Future<void> showPurchaseSheet(
                             'showPurchaseSheet safeClose '
                             'phase=${SchedulerBinding.instance.schedulerPhase}',
                           );
-                          final record = PurchaseRecord(
-                            id: 'new',
+                          final saved = PurchaseRecord(
+                            id: record?.id ?? 'new',
                             productName: productName.text.trim(),
                             storeName: storeName.text.trim(),
                             price: int.tryParse(price.text) ?? 0,
-                            purchasedAt: DateTime.now(),
-                            source: 'manual',
+                            purchasedAt: record?.purchasedAt ?? DateTime.now(),
+                            source: record?.source ?? 'manual',
                           );
                           setSheetState(() {
-                            debugLog('showPurchaseSheet setSheetState isProcessing=true');
+                            debugLog(
+                              'showPurchaseSheet setSheetState isProcessing=true',
+                            );
                             isProcessing = true;
                           });
                           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2802,7 +3456,7 @@ Future<void> showPurchaseSheet(
                               'showPurchaseSheet popCallback mounted=${context.mounted} '
                               'phase=${SchedulerBinding.instance.schedulerPhase}',
                             );
-                            if (context.mounted) Navigator.pop(context, record);
+                            if (context.mounted) Navigator.pop(context, saved);
                           });
                         },
                   child: const Text('保存'),
@@ -2829,7 +3483,20 @@ Future<void> showPurchaseSheet(
     storeName.dispose();
     price.dispose();
     if (result != null) {
-      store.addPurchaseRecord(result);
+      if (record != null) {
+        store.updatePurchaseRecord(result);
+      } else {
+        store.addPurchaseRecord(result);
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              record == null ? '購入履歴を登録しました' : '購入履歴を更新しました',
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -2843,6 +3510,7 @@ Future<void> showPurchaseSheet(
         finalizePurchaseSheet();
       }
     }
+
     anim.addStatusListener(onStatus);
   }
 }
@@ -3004,9 +3672,7 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
                   ],
                   const SizedBox(height: 16),
                   FilledButton.icon(
-                    style: const ButtonStyle(
-                      animationDuration: Duration.zero,
-                    ),
+                    style: const ButtonStyle(animationDuration: Duration.zero),
                     onPressed: loading
                         ? null
                         : () async {
@@ -3072,9 +3738,9 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
       store.startListening();
       debugLog('showAcceptInviteSheet startListening done');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('共有スペースに参加しました。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('共有スペースに参加しました。')));
       }
     }
   }
@@ -3089,6 +3755,7 @@ Future<void> showAcceptInviteSheet(BuildContext context, AppStore store) async {
         finalizeAcceptSheet();
       }
     }
+
     anim.addStatusListener(onStatus);
   }
 }
@@ -3141,13 +3808,15 @@ Future<void> showThemeSheet(BuildContext context, AppStore store) async {
                                 onTap: isProcessing
                                     ? null
                                     : () {
-                                        setSheetState(() => isProcessing = true);
+                                        setSheetState(
+                                          () => isProcessing = true,
+                                        );
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {
-                                          if (context.mounted) {
-                                            Navigator.pop(context, theme);
-                                          }
-                                        });
+                                              if (context.mounted) {
+                                                Navigator.pop(context, theme);
+                                              }
+                                            });
                                       },
                               ),
                             ),
@@ -3218,13 +3887,12 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
                               final displayName =
                                   data['displayName'] as String? ??
                                   docs[index].id;
-                              final role =
-                                  data['role'] as String? ?? 'member';
+                              final role = data['role'] as String? ?? 'member';
                               return ListTile(
                                 leading: const Icon(Icons.person_outline),
                                 title: Text(displayName),
                                 subtitle: Text(
-                                  role == 'owner' ? 'オーナー' : 'メンバー',
+                                  role == 'owner' ? '招待者' : 'メンバー',
                                 ),
                               );
                             },
@@ -3238,6 +3906,106 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
       );
     },
   );
+}
+
+Future<void> _confirmLeaveSpace(BuildContext context, AppStore store) async {
+  final userId = store.activeUserId;
+  if (userId == null) return;
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('スペースを離れる'),
+      content: const Text('共有スペースを離れると、自分の個人スペースに戻ります。再度参加するには招待コードが必要です。'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('離れる'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  try {
+    await store.leaveSharedSpace(userId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('個人スペースに戻りました')));
+  } catch (e) {
+    debugLog('leaveSharedSpace error: $e');
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('離脱に失敗しました。$e')));
+  }
+}
+
+Future<void> _confirmDeleteAccount(
+  BuildContext context,
+  AppStore store,
+  VoidCallback onLogout,
+) async {
+  final colorScheme = Theme.of(context).colorScheme;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('アカウントを削除'),
+      content: const Text('すべてのデータが失われます。この操作は取り消せません。'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('キャンセル'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('削除する'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  store.clearCloudSession();
+
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    onLogout();
+    return;
+  }
+
+  final uid = user.uid;
+
+  // Google ログインユーザーのセッションを先にクリアする
+  final isGoogle = user.providerData.any((p) => p.providerId == 'google.com');
+  if (isGoogle) {
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+  }
+
+  try {
+    await user.delete();
+  } on FirebaseAuthException catch (e) {
+    if (!context.mounted) return;
+    final message = e.code == 'requires-recent-login'
+        ? 'セキュリティのため再ログインが必要です。一度ログアウトして再度ログインしてください。'
+        : '削除に失敗しました。${e.code}';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+    return;
+  }
+
+  await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+
+  onLogout();
 }
 
 // ─── Receipt OCR flow ─────────────────────────────────────────────────────────
@@ -3262,7 +4030,10 @@ Future<ReceiptParseResult> _parseReceiptWithGemini(
   Uint8List bytes,
   String mimeType,
 ) async {
-  final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: _kGeminiApiKey);
+  final model = GenerativeModel(
+    model: 'gemini-2.5-flash',
+    apiKey: _kGeminiApiKey,
+  );
   const prompt =
       'このレシート画像を解析し、以下のJSON形式のみで返してください。\n'
       '{\n'
@@ -3273,16 +4044,15 @@ Future<ReceiptParseResult> _parseReceiptWithGemini(
       '  ]\n'
       '}\n'
       'マークダウンのコードブロックは使わないでください。';
-  final content = Content.multi([
-    TextPart(prompt),
-    DataPart(mimeType, bytes),
-  ]);
+  final content = Content.multi([TextPart(prompt), DataPart(mimeType, bytes)]);
   final response = await model.generateContent([content]);
-  final json = jsonDecode(_cleanJson(response.text ?? '{}')) as Map<String, dynamic>;
+  final json =
+      jsonDecode(_cleanJson(response.text ?? '{}')) as Map<String, dynamic>;
   return ReceiptParseResult(
     storeName: json['storeName'] as String? ?? '',
     purchasedAt:
-        DateTime.tryParse(json['purchasedAt'] as String? ?? '') ?? DateTime.now(),
+        DateTime.tryParse(json['purchasedAt'] as String? ?? '') ??
+        DateTime.now(),
     items: ((json['items'] as List?) ?? []).map((e) {
       final m = e as Map<String, dynamic>;
       return ReceiptItem(
@@ -3298,7 +4068,10 @@ Future<ProductSuggestion> _suggestProductWithGemini(
   ReceiptItem item,
   String storeName,
 ) async {
-  final model = GenerativeModel(model: 'gemini-2.5-flash', apiKey: _kGeminiApiKey);
+  final model = GenerativeModel(
+    model: 'gemini-2.5-flash',
+    apiKey: _kGeminiApiKey,
+  );
   final prompt =
       '以下の商品について家族の価格管理アプリ向けの登録データをJSONのみで返してください。\n'
       '商品名: ${item.name}\n'
@@ -3321,7 +4094,8 @@ Future<ProductSuggestion> _suggestProductWithGemini(
     storeName: json['storeName'] as String? ?? storeName,
     size: json['size'] as String?,
     bestPrice: (json['bestPrice'] as num?)?.toInt() ?? item.price,
-    acceptablePrice: (json['acceptablePrice'] as num?)?.toInt() ??
+    acceptablePrice:
+        (json['acceptablePrice'] as num?)?.toInt() ??
         (item.price * 1.15).round(),
     memo: json['memo'] as String?,
   );
@@ -3435,13 +4209,22 @@ Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
   if (wantsRegister != true || !context.mounted) return;
 
   // Step 4a — product selection
-  final selectedItems =
-      await _showProductSelectionSheet(context, confirmed, store);
-  if (selectedItems == null || selectedItems.isEmpty || !context.mounted) return;
+  final selectedItems = await _showProductSelectionSheet(
+    context,
+    confirmed,
+    store,
+  );
+  if (selectedItems == null || selectedItems.isEmpty || !context.mounted) {
+    return;
+  }
 
   // Step 4b — sequential registration
   await _showSequentialProductRegistration(
-      context, selectedItems, confirmed.storeName, store);
+    context,
+    selectedItems,
+    confirmed.storeName,
+    store,
+  );
 }
 
 Future<ReceiptParseResult?> _showReceiptConfirmSheet(
@@ -3450,7 +4233,9 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
 ) {
   final storeCtrl = TextEditingController(text: initial.storeName);
   final items = initial.items
-      .map((e) => ReceiptItem(name: e.name, price: e.price, quantity: e.quantity))
+      .map(
+        (e) => ReceiptItem(name: e.name, price: e.price, quantity: e.quantity),
+      )
       .toList();
 
   return showModalBottomSheet<ReceiptParseResult>(
@@ -3473,7 +4258,7 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                     height: 4,
                     margin: const EdgeInsets.only(top: 12, bottom: 12),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -3495,7 +4280,9 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                     child: Text(
                       '購入日: ${initial.purchasedAt.toLocal().toIso8601String().substring(0, 10)}',
-                      style: const TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   Expanded(
@@ -3517,8 +4304,10 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                             ),
                             trailing: const Icon(Icons.edit_outlined, size: 18),
                             onTap: () async {
-                              final edited =
-                                  await _showReceiptItemEditDialog(context, item);
+                              final edited = await _showReceiptItemEditDialog(
+                                context,
+                                item,
+                              );
                               if (edited != null) {
                                 setSheetState(() => items[index] = edited);
                               }
@@ -3532,19 +4321,20 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     child: FilledButton(
                       style: const ButtonStyle(
-                          animationDuration: Duration.zero),
+                        animationDuration: Duration.zero,
+                      ),
                       onPressed: items.isEmpty
                           ? null
                           : () => Navigator.pop(
-                                ctx,
-                                ReceiptParseResult(
-                                  storeName: storeCtrl.text.trim().isNotEmpty
-                                      ? storeCtrl.text.trim()
-                                      : initial.storeName,
-                                  purchasedAt: initial.purchasedAt,
-                                  items: List.from(items),
-                                ),
+                              ctx,
+                              ReceiptParseResult(
+                                storeName: storeCtrl.text.trim().isNotEmpty
+                                    ? storeCtrl.text.trim()
+                                    : initial.storeName,
+                                purchasedAt: initial.purchasedAt,
+                                items: List.from(items),
                               ),
+                            ),
                       child: Text('${items.length}件を購入履歴として保存'),
                     ),
                   ),
@@ -3616,8 +4406,7 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
   ReceiptParseResult result,
   AppStore store,
 ) {
-  final existingNames =
-      store.products.map((p) => p.name.toLowerCase()).toSet();
+  final existingNames = store.products.map((p) => p.name.toLowerCase()).toSet();
   final selectables = result.items.map((item) {
     final exists = existingNames.contains(item.name.toLowerCase());
     return _SelectableReceiptItem(
@@ -3634,8 +4423,9 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
     builder: (ctx) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          final count =
-              selectables.where((s) => s.selected && !s.alreadyExists).length;
+          final count = selectables
+              .where((s) => s.selected && !s.alreadyExists)
+              .length;
           return DraggableScrollableSheet(
             expand: false,
             initialChildSize: 0.7,
@@ -3649,7 +4439,7 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                     height: 4,
                     margin: const EdgeInsets.only(top: 12, bottom: 12),
                     decoration: BoxDecoration(
-                      color: Colors.grey[300],
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -3663,24 +4453,26 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                       itemCount: selectables.length,
                       itemBuilder: (context, index) {
                         final s = selectables[index];
+                        final disabledColor = Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant;
                         return CheckboxListTile(
                           value: s.selected,
                           onChanged: s.alreadyExists
                               ? null
                               : (val) => setSheetState(
-                                  () => s.selected = val ?? false),
+                                  () => s.selected = val ?? false,
+                                ),
                           title: Text(
                             s.item.name,
                             style: TextStyle(
-                              color: s.alreadyExists ? Colors.grey : null,
+                              color: s.alreadyExists ? disabledColor : null,
                             ),
                           ),
                           subtitle: Text(
-                            s.alreadyExists
-                                ? '登録済み'
-                                : formatYen(s.item.price),
+                            s.alreadyExists ? '登録済み' : formatYen(s.item.price),
                             style: TextStyle(
-                              color: s.alreadyExists ? Colors.grey : null,
+                              color: s.alreadyExists ? disabledColor : null,
                             ),
                           ),
                           controlAffinity: ListTileControlAffinity.leading,
@@ -3692,17 +4484,17 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                     child: FilledButton(
                       style: const ButtonStyle(
-                          animationDuration: Duration.zero),
+                        animationDuration: Duration.zero,
+                      ),
                       onPressed: count == 0
                           ? null
                           : () => Navigator.pop(
-                                ctx,
-                                selectables
-                                    .where(
-                                        (s) => s.selected && !s.alreadyExists)
-                                    .map((s) => s.item)
-                                    .toList(),
-                              ),
+                              ctx,
+                              selectables
+                                  .where((s) => s.selected && !s.alreadyExists)
+                                  .map((s) => s.item)
+                                  .toList(),
+                            ),
                       child: Text('$count件を登録する'),
                     ),
                   ),
@@ -3755,9 +4547,9 @@ Future<void> _showSequentialProductRegistration(
   }
 
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('商品の登録が完了しました')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('商品の登録が完了しました')));
   }
 }
 
@@ -3772,10 +4564,10 @@ Future<bool?> _showProductSuggestionSheet(
   final nameCtrl = TextEditingController(text: suggestion.name);
   final storeCtrl = TextEditingController(text: suggestion.storeName);
   final sizeCtrl = TextEditingController(text: suggestion.size ?? '');
-  final bestCtrl =
-      TextEditingController(text: suggestion.bestPrice.toString());
-  final acceptableCtrl =
-      TextEditingController(text: suggestion.acceptablePrice.toString());
+  final bestCtrl = TextEditingController(text: suggestion.bestPrice.toString());
+  final acceptableCtrl = TextEditingController(
+    text: suggestion.acceptablePrice.toString(),
+  );
   final memoCtrl = TextEditingController(text: suggestion.memo ?? '');
   var saleDays = <int>{};
   String? selectedCategory;
@@ -3804,7 +4596,10 @@ Future<bool?> _showProductSuggestionSheet(
                 children: [
                   Text(
                     '$total件中 $current件目',
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
@@ -3827,11 +4622,11 @@ Future<bool?> _showProductSuggestionSheet(
                     decoration: const InputDecoration(labelText: 'サイズ（任意）'),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'ここを確認してください',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.orange,
+                      color: Theme.of(context).colorScheme.tertiary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -3841,13 +4636,17 @@ Future<bool?> _showProductSuggestionSheet(
                     decoration: InputDecoration(
                       labelText: 'ベスト価格',
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(
-                            color: Colors.orange, width: 1.5),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(
-                            color: Colors.orange, width: 2),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          width: 2,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -3859,13 +4658,17 @@ Future<bool?> _showProductSuggestionSheet(
                     decoration: InputDecoration(
                       labelText: '許容価格',
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(
-                            color: Colors.orange, width: 1.5),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          width: 1.5,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(
-                            color: Colors.orange, width: 2),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.tertiary,
+                          width: 2,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
@@ -3916,15 +4719,13 @@ Future<bool?> _showProductSuggestionSheet(
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
-                    style: const ButtonStyle(
-                        animationDuration: Duration.zero),
+                    style: const ButtonStyle(animationDuration: Duration.zero),
                     onPressed: isProcessing
                         ? null
                         : () {
                             final nameVal = nameCtrl.text.trim();
                             final storeVal = storeCtrl.text.trim();
-                            final best =
-                                int.tryParse(bestCtrl.text) ?? 0;
+                            final best = int.tryParse(bestCtrl.text) ?? 0;
                             final acceptable =
                                 int.tryParse(acceptableCtrl.text) ?? 0;
                             String? err;
@@ -3938,9 +4739,9 @@ Future<bool?> _showProductSuggestionSheet(
                               err = '許容価格はベスト価格以上にしてください';
                             }
                             if (err != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(err)),
-                              );
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(err)));
                               return;
                             }
                             final saved = Product(
@@ -3969,8 +4770,7 @@ Future<bool?> _showProductSuggestionSheet(
                   ),
                   const SizedBox(height: 8),
                   TextButton(
-                    style: const ButtonStyle(
-                        animationDuration: Duration.zero),
+                    style: const ButtonStyle(animationDuration: Duration.zero),
                     onPressed: isProcessing
                         ? null
                         : () {
@@ -4015,6 +4815,7 @@ Future<bool?> _showProductSuggestionSheet(
         finalize();
       }
     }
+
     anim.addStatusListener(onStatus);
   }
 
@@ -4037,6 +4838,13 @@ class _BentoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
@@ -4081,7 +4889,6 @@ class _ViewTitle extends StatelessWidget {
   }
 }
 
-
 class _SheetTitle extends StatelessWidget {
   const _SheetTitle({required this.title, this.subtitle});
 
@@ -4097,18 +4904,17 @@ class _SheetTitle extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -4366,7 +5172,8 @@ const _privacyPolicy = [
   ),
   _LegalSection(
     heading: 'お問い合わせ',
-    body: '個人情報の取り扱いに関するお問い合わせは、以下までご連絡ください。\n\nokstore\nメール: support@okstore.example.com',
+    body:
+        '個人情報の取り扱いに関するお問い合わせは、以下までご連絡ください。\n\nokstore\nメール: info@okstore.website',
   ),
 ];
 
@@ -4394,13 +5201,18 @@ const productCategories = [
 String categoryLabel(String? id) {
   if (id == null) return '';
   return productCategories
-      .firstWhere((c) => c.id == id, orElse: () => const ProductCategory(id: '', label: ''))
+      .firstWhere(
+        (c) => c.id == id,
+        orElse: () => const ProductCategory(id: '', label: ''),
+      )
       .label;
 }
 
 const weekdayLabels = ['月', '火', '水', '木', '金', '土', '日'];
 
-String formatYen(int value) => '¥$value';
+final _yenFormat = NumberFormat('#,##0', 'ja_JP');
+
+String formatYen(int value) => '¥${_yenFormat.format(value)}';
 
 String weekdayText(Set<int> days) {
   if (days.isEmpty) return '特売日未設定';

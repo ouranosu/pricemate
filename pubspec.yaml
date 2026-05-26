@@ -41,6 +41,8 @@ dependencies:
   shared_preferences: ^2.5.5
   image_picker: ^1.1.2
   google_generative_ai: ^0.4.6
+  app_tracking_transparency: ^2.0.6+1
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
