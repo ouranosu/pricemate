@@ -16,7 +16,11 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import 'ad_banner.dart';
 import 'firebase_options.dart';
+import 'review_mode.dart';
 
 const _kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
@@ -37,6 +41,7 @@ Future<void> main() async {
   };
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await GoogleSignIn.instance.initialize(serverClientId: googleServerClientId);
+  await MobileAds.instance.initialize();
   debugLog('runApp PriceMateApp');
   runApp(const PriceMateApp());
 }
@@ -103,14 +108,17 @@ class PriceMateApp extends StatefulWidget {
 
 class _PriceMateAppState extends State<PriceMateApp> {
   final AppStore store = AppStore();
+  late final ReviewModeStore _reviewStore;
   bool showSplash = true;
   bool onboardingLoaded = false;
   bool onboardingDone = false;
   bool signedIn = false;
+  bool _reviewMode = false;
 
   @override
   void initState() {
     super.initState();
+    _reviewStore = ReviewModeStore();
     debugLog('PriceMateApp initState');
     loadOnboardingState();
     store.loadSavedTheme();
@@ -125,7 +133,19 @@ class _PriceMateAppState extends State<PriceMateApp> {
   void dispose() {
     debugLog('PriceMateApp dispose');
     store.dispose();
+    _reviewStore.dispose();
     super.dispose();
+  }
+
+  Future<void> _reviewLogin() async {
+    await _reviewStore.initReviewSession();
+    if (!mounted) return;
+    setState(() => _reviewMode = true);
+  }
+
+  Future<void> _reviewLogout() async {
+    _reviewStore.clearCloudSession();
+    setState(() => _reviewMode = false);
   }
 
   Future<void> loadOnboardingState() async {
@@ -185,13 +205,16 @@ class _PriceMateAppState extends State<PriceMateApp> {
   Widget _buildHome() {
     debugLog(
       'buildHome splash=$showSplash onboardingLoaded=$onboardingLoaded '
-      'onboardingDone=$onboardingDone signedIn=$signedIn',
+      'onboardingDone=$onboardingDone signedIn=$signedIn reviewMode=$_reviewMode',
     );
     if (showSplash || !onboardingLoaded) {
       return const SplashView();
     }
     if (!onboardingDone) {
       return OnboardingView(onComplete: completeOnboarding, store: store);
+    }
+    if (_reviewMode) {
+      return PriceMateShell(store: _reviewStore, onLogout: _reviewLogout);
     }
     if (widget.useFirebase) {
       return StreamBuilder<User?>(
@@ -211,6 +234,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
               onEmailLogin: signInWithEmail,
               onCreateAccount: createAccountWithEmail,
               onGoogleLogin: signInWithGoogle,
+              onReviewLogin: _reviewLogin,
             );
           }
 
@@ -226,6 +250,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
         onEmailLogin: (_, _) async => setState(() => signedIn = true),
         onCreateAccount: (_, _) async => setState(() => signedIn = true),
         onGoogleLogin: () async => setState(() => signedIn = true),
+        onReviewLogin: _reviewLogin,
       );
     }
     return PriceMateShell(
@@ -779,11 +804,13 @@ class LoginView extends StatefulWidget {
     required this.onEmailLogin,
     required this.onCreateAccount,
     required this.onGoogleLogin,
+    this.onReviewLogin,
   });
 
   final Future<void> Function(String email, String password) onEmailLogin;
   final Future<void> Function(String email, String password) onCreateAccount;
   final Future<void> Function() onGoogleLogin;
+  final Future<void> Function()? onReviewLogin;
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -897,6 +924,19 @@ class _LoginViewState extends State<LoginView> {
             if (loading) ...[
               const SizedBox(height: 20),
               const Center(child: CircularProgressIndicator()),
+            ],
+            if (widget.onReviewLogin != null) ...[
+              const Divider(height: 40),
+              TextButton(
+                onPressed: loading
+                    ? null
+                    : () => runAuthAction(widget.onReviewLogin!),
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                child: const Text('審査担当者の方はこちら'),
+              ),
             ],
           ],
         ),
@@ -2241,6 +2281,8 @@ class HomeView extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 10),
+          const BannerAdWidget(),
         ],
       ),
     );
@@ -2260,7 +2302,10 @@ class ShoppingListView extends StatelessWidget {
         return a.urgency == Urgency.now ? -1 : 1;
       });
 
-    return RefreshIndicator(
+    return Column(
+      children: [
+        Expanded(
+          child: RefreshIndicator(
       onRefresh: () async {
         if (store.activeSpaceId == null) return;
         store.stopListening();
@@ -2322,6 +2367,10 @@ class ShoppingListView extends StatelessWidget {
             }),
         ],
       ),
+    ),
+        ),
+        const BannerAdWidget(),
+      ],
     );
   }
 }
@@ -2451,6 +2500,7 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
               ),
             ),
           ),
+          const BannerAdWidget(),
           Expanded(
             child: widget.store.purchaseRecords.isEmpty
                 ? const _EmptyMessage(message: '購入履歴はまだありません。')
@@ -2739,6 +2789,8 @@ class _ProductListViewState extends State<ProductListView> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          const BannerAdWidget(),
           if (visibleCategories.isNotEmpty) ...[
             const SizedBox(height: 8),
             SingleChildScrollView(
@@ -2877,7 +2929,9 @@ class SettingsView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        const BannerAdWidget(),
+        const SizedBox(height: 12),
         Card(
           child: Column(
             children: [

@@ -27,6 +27,7 @@ migrate_working_dir/
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
@@ -44,8 +45,24 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android — signing & local machine config
 android/key.properties
-android/app/upload-keystore.jks
+android/local.properties
+*.jks
+*.keystore
+
+# iOS — CocoaPods
+ios/Pods/
+ios/.symlinks/
+
+# iOS — generated files (contain local paths and env vars)
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+
+# Firebase config (contains project credentials — share via secure channel)
+google-services.json
+GoogleService-Info.plist
 
 # Local secrets — copy .env.json.example → .env.json and fill in real keys
 .env.json
