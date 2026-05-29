@@ -82,3 +82,42 @@ Then add the SHA-1 (and SHA-256) in Firebase Console → Project settings → An
 ### Theme System
 
 `AppThemePreset` defines 5 seed-color themes stored in `themePresets`. `AppStore.selectTheme()` updates `selectedTheme` and notifies listeners. Theme preference is in-memory only (not persisted to SharedPreferences or Firestore yet).
+
+## Landing Page (LP)
+
+The LP lives at `C:\code\okstore\pricemate-lp` — a separate static HTML/CSS/JS project (no build step).
+
+```
+pricemate-lp/
+  index.html        ← main LP (SEO/AEO/GEO/ASO optimized)
+  privacy.html      ← Privacy Policy
+  terms.html        ← Terms of Service
+  css/style.css
+  js/script.js
+  robots.txt
+  sitemap.xml
+  images/           ← create this folder and add assets (see below)
+```
+
+### Before deploying
+
+Search for `YOUR_DOMAIN` in these files and replace with the actual domain:
+- `index.html` — canonical, og:url, og:image, all JSON-LD `url` fields
+- `sitemap.xml` — all `<loc>` entries
+- `robots.txt` — Sitemap directive
+
+### Images needed (`pricemate-lp/images/`)
+
+| File | Size | Purpose |
+|---|---|---|
+| `og-image.png` | 1200×630 | OG/Twitter card (SNSシェア用) |
+| `apple-touch-icon.png` | 180×180 | iOS ホーム画面アイコン |
+| `favicon.ico` | multi-size | ブラウザタブアイコン |
+| `icon.svg` | vector | SVG favicon |
+| `icon.png` | 512×512 | JSON-LD logo フィールド用 |
+
+### ASO: App Store公開後にやること
+
+1. `index.html` の `<meta name="apple-itunes-app">` タグをコメントアウトから外し、`YOUR_APP_STORE_ID` を実際のIDに変更する
+2. `sitemap.xml` の `lastmod` を更新する
+3. Google Search Console にサイトを登録してサイトマップを送信する

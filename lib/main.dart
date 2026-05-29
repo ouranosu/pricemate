@@ -10,7 +10,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:crypto/crypto.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:intl/intl.dart';
@@ -234,6 +236,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
               onEmailLogin: signInWithEmail,
               onCreateAccount: createAccountWithEmail,
               onGoogleLogin: signInWithGoogle,
+              onAppleLogin: signInWithApple,
               onReviewLogin: _reviewLogin,
             );
           }
@@ -250,6 +253,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
         onEmailLogin: (_, _) async => setState(() => signedIn = true),
         onCreateAccount: (_, _) async => setState(() => signedIn = true),
         onGoogleLogin: () async => setState(() => signedIn = true),
+        onAppleLogin: () async => setState(() => signedIn = true),
         onReviewLogin: _reviewLogin,
       );
     }
@@ -301,11 +305,47 @@ class _PriceMateAppState extends State<PriceMateApp> {
     debugPrint('Google Sign-In: Firebase Auth sign-in complete');
   }
 
+  Future<void> signInWithApple() async {
+    final rawNonce = _generateNonce();
+    final nonce = _sha256ofString(rawNonce);
+
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+      nonce: nonce,
+    );
+
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: appleCredential.identityToken,
+      accessToken: appleCredential.authorizationCode,
+      rawNonce: rawNonce,
+    );
+
+    await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+  }
+
   Future<void> signOut() async {
     await GoogleSignIn.instance.signOut();
     store.clearCloudSession();
     await FirebaseAuth.instance.signOut();
   }
+}
+
+String _generateNonce([int length = 32]) {
+  const charset =
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+  final random = Random.secure();
+  return List.generate(
+    length,
+    (_) => charset[random.nextInt(charset.length)],
+  ).join();
+}
+
+String _sha256ofString(String input) {
+  final bytes = utf8.encode(input);
+  return sha256.convert(bytes).toString();
 }
 
 enum Urgency { now, later }
@@ -804,12 +844,14 @@ class LoginView extends StatefulWidget {
     required this.onEmailLogin,
     required this.onCreateAccount,
     required this.onGoogleLogin,
+    this.onAppleLogin,
     this.onReviewLogin,
   });
 
   final Future<void> Function(String email, String password) onEmailLogin;
   final Future<void> Function(String email, String password) onCreateAccount;
   final Future<void> Function() onGoogleLogin;
+  final Future<void> Function()? onAppleLogin;
   final Future<void> Function()? onReviewLogin;
 
   @override
@@ -916,6 +958,19 @@ class _LoginViewState extends State<LoginView> {
                 icon: const Icon(Icons.g_mobiledata),
                 label: const Text('Googleでログイン'),
               ),
+              if (Platform.isIOS && widget.onAppleLogin != null) ...[
+                const SizedBox(height: 12),
+                IgnorePointer(
+                  ignoring: loading,
+                  child: SignInWithAppleButton(
+                    onPressed: () => runAuthAction(widget.onAppleLogin!),
+                    style: Theme.of(context).brightness == Brightness.dark
+                        ? SignInWithAppleButtonStyle.white
+                        : SignInWithAppleButtonStyle.black,
+                    borderRadius: const BorderRadius.all(Radius.circular(8)),
+                  ),
+                ),
+              ],
               TextButton(
                 onPressed: loading ? null : resetPassword,
                 child: const Text('パスワードを忘れた方はこちら'),
@@ -996,6 +1051,15 @@ class _LoginViewState extends State<LoginView> {
         'description=${error.description}, details=${error.details}',
       );
       setState(() => errorMessage = googleSignInErrorMessage(error));
+    } on SignInWithAppleAuthorizationException catch (error) {
+      debugPrint(
+        'AppleSignInException: code=${error.code}, message=${error.message}',
+      );
+      if (error.code != AuthorizationErrorCode.canceled) {
+        setState(
+          () => errorMessage = 'Appleログインに失敗しました。${error.message}',
+        );
+      }
     } catch (error, stackTrace) {
       debugPrint('Auth error: $error');
       debugPrintStack(stackTrace: stackTrace);

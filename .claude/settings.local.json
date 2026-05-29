@@ -10,7 +10,11 @@
       "Bash(flutter pub *)",
       "Bash(flutter --version)",
       "Bash(flutter build *)",
-      "Bash(dart run *)"
+      "Bash(dart run *)",
+      "WebFetch(domain:www.rfc-editor.org)",
+      "WebFetch(domain:isitagentready.com)",
+      "WebFetch(domain:datatracker.ietf.org)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }
