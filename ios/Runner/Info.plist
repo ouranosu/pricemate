@@ -5,6 +5,20 @@
 	<!-- AdMob App ID -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-4185372678326421~9600777248</string>
+	<!-- Google Sign-In -->
+	<key>GIDClientID</key>
+	<string>734452752206-atoqv67j9llou4k4a4qt4o6tqempf6mp.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.734452752206-atoqv67j9llou4k4a4qt4o6tqempf6mp</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>レシートを撮影して購入履歴を自動入力するために使用します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
