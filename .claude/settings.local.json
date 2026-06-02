@@ -14,7 +14,9 @@
       "WebFetch(domain:www.rfc-editor.org)",
       "WebFetch(domain:isitagentready.com)",
       "WebFetch(domain:datatracker.ietf.org)",
-      "WebFetch(domain:developers.cloudflare.com)"
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(New-Item -ItemType Directory -Force lib/core, lib/models, lib/store, lib/widgets, lib/features/auth, lib/features/onboarding, lib/features/home, lib/features/shopping, lib/features/history, lib/features/products, lib/features/input, lib/features/settings, lib/features/receipt)",
+      "Bash(Out-Null)"
     ]
   }
 }

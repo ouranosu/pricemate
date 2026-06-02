@@ -10,7 +10,11 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'main.dart';
+import 'models/enums.dart';
+import 'models/product.dart';
+import 'models/purchase_record.dart';
+import 'models/shopping_item.dart';
+import 'store/app_store.dart';
 
 // ─── SQLite ヘルパー ──────────────────────────────────────────────────────────
 

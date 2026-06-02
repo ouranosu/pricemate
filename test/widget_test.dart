@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:pricemate/main.dart';
+import 'package:pricemate/app.dart';
 
 void main() {
   testWidgets('PriceMate shows onboarding, login, and main tabs', (
