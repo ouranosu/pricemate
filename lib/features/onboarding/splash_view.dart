@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
 
@@ -65,7 +67,7 @@ class _SplashViewState extends State<SplashView>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '家族で使う買い物の価格メモ',
+                  AppLocalizations.of(context)!.appTagline,
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ],

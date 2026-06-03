@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -14,6 +15,7 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
     showDragHandle: true,
     useSafeArea: true,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       return FractionallySizedBox(
         heightFactor: 0.6,
         child: Padding(
@@ -21,10 +23,10 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SheetTitle(title: '家族メンバー'),
+              SheetTitle(title: l10n.familyMembersTitle),
               Expanded(
                 child: spaceId == null
-                    ? const Center(child: Text('スペースに参加していません。'))
+                    ? Center(child: Text(l10n.notInSpace))
                     : FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
                         future: FirebaseFirestore.instance
                             .collection('sharedSpaces')
@@ -32,6 +34,7 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
                             .collection('members')
                             .get(),
                         builder: (context, snapshot) {
+                          final l10n = AppLocalizations.of(context)!;
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
@@ -39,13 +42,13 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
                             );
                           }
                           if (snapshot.hasError) {
-                            return const Center(
-                              child: Text('メンバーを取得できませんでした。'),
+                            return Center(
+                              child: Text(l10n.fetchMembersFailed),
                             );
                           }
                           final docs = snapshot.data?.docs ?? [];
                           if (docs.isEmpty) {
-                            return const Center(child: Text('メンバーはいません。'));
+                            return Center(child: Text(l10n.noMembers));
                           }
                           return ListView.builder(
                             itemCount: docs.length,
@@ -60,7 +63,9 @@ Future<void> showMembersSheet(BuildContext context, AppStore store) async {
                                 leading: const Icon(Icons.person_outline),
                                 title: Text(displayName),
                                 subtitle: Text(
-                                  role == 'owner' ? '招待者' : 'メンバー',
+                                  role == 'owner'
+                                      ? l10n.roleOwner
+                                      : l10n.roleMember,
                                 ),
                               );
                             },

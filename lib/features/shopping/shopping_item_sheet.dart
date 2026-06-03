@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/enums.dart';
 import '../../models/shopping_item.dart';
 import '../../store/app_store.dart';
@@ -26,6 +27,7 @@ Future<void> showShoppingItemSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -37,16 +39,26 @@ Future<void> showShoppingItemSheet(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SheetTitle(title: item == null ? '買うものを登録' : '買うものを編集'),
+                SheetTitle(
+                  title: item == null
+                      ? l10n.addShoppingItemSheet
+                      : l10n.editShoppingItemSheet,
+                ),
                 TextField(
                   controller: name,
-                  decoration: const InputDecoration(labelText: '商品名'),
+                  decoration: InputDecoration(labelText: l10n.productName),
                 ),
                 const SizedBox(height: 16),
                 SegmentedButton<Urgency>(
-                  segments: const [
-                    ButtonSegment(value: Urgency.now, label: Text('すぐ必要')),
-                    ButtonSegment(value: Urgency.later, label: Text('そのうち')),
+                  segments: [
+                    ButtonSegment(
+                      value: Urgency.now,
+                      label: Text(l10n.urgencyNow),
+                    ),
+                    ButtonSegment(
+                      value: Urgency.later,
+                      label: Text(l10n.urgencyLater),
+                    ),
                   ],
                   selected: {urgency},
                   onSelectionChanged: (value) =>
@@ -60,7 +72,9 @@ Future<void> showShoppingItemSheet(
                       : () {
                           if (name.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('商品名を入力してください')),
+                              SnackBar(
+                                content: Text(l10n.enterProductName),
+                              ),
                             );
                             return;
                           }
@@ -88,7 +102,7 @@ Future<void> showShoppingItemSheet(
                             if (context.mounted) Navigator.pop(context, result);
                           });
                         },
-                  child: const Text('保存'),
+                  child: Text(l10n.save),
                 ),
               ],
             ),
@@ -112,9 +126,12 @@ Future<void> showShoppingItemSheet(
     if (savedItem != null) {
       store.upsertShoppingItem(item, savedItem);
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(item == null ? '買うものを追加しました' : '買うものを更新しました'),
+            content: Text(
+              item == null ? l10n.shoppingItemAdded : l10n.shoppingItemUpdated,
+            ),
           ),
         );
       }

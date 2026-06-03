@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -15,6 +16,7 @@ Future<void> showThemeSheet(BuildContext context, AppStore store) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return FractionallySizedBox(
             heightFactor: 0.75,
             child: Padding(
@@ -22,8 +24,8 @@ Future<void> showThemeSheet(BuildContext context, AppStore store) async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SheetTitle(title: 'テーマカラー'),
-                  const Text('アプリ全体の雰囲気を選べます。'),
+                  SheetTitle(title: l10n.themeColorTitle),
+                  Text(l10n.themeColorDesc),
                   const SizedBox(height: 16),
                   Expanded(
                     child: SingleChildScrollView(

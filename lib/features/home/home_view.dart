@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../ad_banner.dart';
 import '../../core/formatters.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/enums.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
@@ -22,6 +23,7 @@ class HomeView extends StatelessWidget {
     final todayProducts = store.products
         .where((product) => product.saleDays.contains(DateTime.now().weekday))
         .toList();
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -35,7 +37,7 @@ class HomeView extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
           Text(
-            'ホーム',
+            l10n.home,
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
             ),
@@ -57,7 +59,7 @@ class HomeView extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '今日の特売',
+                      l10n.todaysSale,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onTertiaryContainer,
@@ -72,7 +74,7 @@ class HomeView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Center(
                       child: Text(
-                        '今日の特売なし',
+                        l10n.noSaleToday,
                         style: TextStyle(
                           color: colorScheme.onTertiaryContainer.withValues(
                             alpha: 0.55,
@@ -133,7 +135,7 @@ class HomeView extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'すぐ必要',
+                      l10n.urgentNeeded,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onPrimaryContainer,
@@ -143,7 +145,7 @@ class HomeView extends StatelessWidget {
                     const Spacer(),
                     if (urgentCount > 0)
                       Text(
-                        '$urgentCount件',
+                        l10n.countItems(urgentCount),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -160,7 +162,7 @@ class HomeView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Center(
                       child: Text(
-                        'すぐ必要なものはありません',
+                        l10n.nothingUrgent,
                         style: TextStyle(
                           color: colorScheme.onPrimaryContainer.withValues(
                             alpha: 0.55,
@@ -221,7 +223,7 @@ class HomeView extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '最近の購入',
+                      l10n.recentPurchases,
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onSurface,
@@ -235,7 +237,7 @@ class HomeView extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      '履歴なし',
+                      l10n.noHistory,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 12,

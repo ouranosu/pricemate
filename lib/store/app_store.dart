@@ -19,6 +19,7 @@ class AppStore extends ChangeNotifier {
   final ValueNotifier<AppThemePreset> themeNotifier = ValueNotifier(
     themePresets.first,
   );
+  final ValueNotifier<Locale?> localeNotifier = ValueNotifier(null);
   String? activeUserId;
   String? activeSpaceId;
   bool _connecting = false;
@@ -46,6 +47,7 @@ class AppStore extends ChangeNotifier {
     debugLog('AppStore dispose');
     stopListening();
     themeNotifier.dispose();
+    localeNotifier.dispose();
     super.dispose();
   }
 
@@ -375,6 +377,25 @@ class AppStore extends ChangeNotifier {
       (prefs) => prefs.setString('selectedThemeId', theme.id),
     );
     notifyStoreListeners('selectTheme:${theme.id}');
+  }
+
+  Future<void> loadSavedLocale() async {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString('selectedLocale');
+    if (code == null) return;
+    localeNotifier.value = Locale(code);
+  }
+
+  void selectLocale(Locale? locale) {
+    localeNotifier.value = locale;
+    SharedPreferences.getInstance().then((prefs) {
+      if (locale == null) {
+        prefs.remove('selectedLocale');
+      } else {
+        prefs.setString('selectedLocale', locale.languageCode);
+      }
+    });
+    notifyStoreListeners('selectLocale:${locale?.languageCode}');
   }
 
   void upsertProduct(Product? current, Product product) {

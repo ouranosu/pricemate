@@ -7,7 +7,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/debug.dart';
 import '../../core/formatters.dart';
-import '../../models/product.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/product.dart'
+    show Product, productCategories, localizedCategoryLabel, localizedWeekdayLabels;
 import '../../models/receipt.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
@@ -15,25 +17,29 @@ import '../../widgets/common_widgets.dart';
 const _kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
 Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
+  final l10n = AppLocalizations.of(context)!;
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
-    builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('カメラで撮影'),
-            onTap: () => Navigator.pop(ctx, ImageSource.camera),
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('ギャラリーから選択'),
-            onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-          ),
-        ],
-      ),
-    ),
+    builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: Text(l10n.capturePhoto),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(l10n.chooseGallery),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      );
+    },
   );
   if (source == null || !context.mounted) return;
 
@@ -44,7 +50,7 @@ Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
   );
   if (xFile == null || !context.mounted) return;
 
-  _showLoadingDialog(context, '読み取り中...');
+  _showLoadingDialog(context, l10n.processingReceipt);
 
   ReceiptParseResult? parsed;
   try {
@@ -59,7 +65,7 @@ Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
 
   if (parsed == null || parsed.items.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('レシートの読み取りに失敗しました。もう一度お試しください。')),
+      SnackBar(content: Text(l10n.receiptReadFailed)),
     );
     return;
   }
@@ -72,33 +78,39 @@ Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
 
   final wantsRegister = await showModalBottomSheet<bool>(
     context: context,
-    builder: (ctx) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              '定番商品として登録しますか？',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-            ),
-            const SizedBox(height: 8),
-            const Text('購入した商品を価格メモに追加しておくと、次回の買い物で役立ちます。'),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('商品を選んで登録する'),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('あとで'),
-            ),
-          ],
+    builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.registerRegularTitle,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(l10n.registerRegularDesc),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(l10n.selectAndRegister),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(l10n.later),
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
+      );
+    },
   );
   if (wantsRegister != true || !context.mounted) return;
 
@@ -156,25 +168,48 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                    child: SheetTitle(
-                      title: 'レシートを確認',
-                      subtitle: 'タップで編集・スワイプで削除できます',
+                    child: Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return SheetTitle(
+                          title: l10n.confirmReceiptTitle,
+                          subtitle: l10n.confirmReceiptSubtitle,
+                        );
+                      },
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: TextField(
-                      controller: storeCtrl,
-                      decoration: const InputDecoration(labelText: '店舗名'),
+                    child: Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return TextField(
+                          controller: storeCtrl,
+                          decoration: InputDecoration(
+                            labelText: l10n.storeName,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: Text(
-                      '購入日: ${initial.purchasedAt.toLocal().toIso8601String().substring(0, 10)}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    child: Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context)!;
+                        return Text(
+                          l10n.purchaseDateLabel(
+                            initial.purchasedAt
+                                .toLocal()
+                                .toIso8601String()
+                                .substring(0, 10),
+                          ),
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   Expanded(
@@ -231,7 +266,12 @@ Future<ReceiptParseResult?> _showReceiptConfirmSheet(
                                 items: List.from(items),
                               ),
                             ),
-                      child: Text('${items.length}件を購入履歴として保存'),
+                      child: Builder(
+                        builder: (context) => Text(
+                          AppLocalizations.of(context)!
+                              .saveAsPurchases(items.length),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -256,25 +296,38 @@ Future<ReceiptItem?> _showReceiptItemEditDialog(
   final result = await showDialog<ReceiptItem>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('商品を編集'),
+      title: Builder(
+        builder: (context) =>
+            Text(AppLocalizations.of(context)!.editItemTitle),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
-            controller: nameCtrl,
-            decoration: const InputDecoration(labelText: '商品名'),
+          Builder(
+            builder: (context) => TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.productName,
+              ),
+            ),
           ),
-          TextField(
-            controller: priceCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '価格（円）'),
+          Builder(
+            builder: (context) => TextField(
+              controller: priceCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.priceYen,
+              ),
+            ),
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: const Text('キャンセル'),
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(
@@ -339,9 +392,15 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: SheetTitle(title: '登録する商品を選択'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Builder(
+                      builder: (context) => SheetTitle(
+                        title: AppLocalizations.of(
+                          context,
+                        )!.selectProductsTitle,
+                      ),
+                    ),
                   ),
                   Expanded(
                     child: ListView.builder(
@@ -365,7 +424,11 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                             ),
                           ),
                           subtitle: Text(
-                            s.alreadyExists ? '登録済み' : formatYen(s.item.price),
+                            s.alreadyExists
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.alreadyRegistered
+                                : formatYen(s.item.price),
                             style: TextStyle(
                               color: s.alreadyExists ? disabledColor : null,
                             ),
@@ -390,7 +453,11 @@ Future<List<ReceiptItem>?> _showProductSelectionSheet(
                                   .map((s) => s.item)
                                   .toList(),
                             ),
-                      child: Text('$count件を登録する'),
+                      child: Builder(
+                        builder: (context) => Text(
+                          AppLocalizations.of(context)!.registerCount(count),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -412,7 +479,10 @@ Future<void> _showSequentialProductRegistration(
   for (int i = 0; i < items.length; i++) {
     if (!context.mounted) return;
 
-    _showLoadingDialog(context, '整理しています...');
+    _showLoadingDialog(
+      context,
+      AppLocalizations.of(context)!.organizing,
+    );
 
     ProductSuggestion suggestion;
     try {
@@ -442,9 +512,11 @@ Future<void> _showSequentialProductRegistration(
   }
 
   if (context.mounted) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('商品の登録が完了しました')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.registrationComplete),
+      ),
+    );
   }
 }
 
@@ -478,6 +550,7 @@ Future<bool?> _showProductSuggestionSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -491,7 +564,7 @@ Future<bool?> _showProductSuggestionSheet(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '$total件中 $current件目',
+                    l10n.progressOf(current, total),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -504,14 +577,14 @@ Future<bool?> _showProductSuggestionSheet(
                     child: LinearProgressIndicator(value: current / total),
                   ),
                   const SizedBox(height: 16),
-                  const SheetTitle(title: '商品を登録'),
+                  SheetTitle(title: l10n.addProductSheet),
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: '商品名'),
+                    decoration: InputDecoration(labelText: l10n.productName),
                   ),
                   TextField(
                     controller: storeCtrl,
-                    decoration: const InputDecoration(labelText: '店舗名'),
+                    decoration: InputDecoration(labelText: l10n.storeName),
                   ),
                   TextField(
                     controller: sizeCtrl,
@@ -519,7 +592,7 @@ Future<bool?> _showProductSuggestionSheet(
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'ここを確認してください',
+                    l10n.reviewHere,
                     style: TextStyle(
                       fontSize: 11,
                       color: Theme.of(context).colorScheme.tertiary,
@@ -530,7 +603,7 @@ Future<bool?> _showProductSuggestionSheet(
                     controller: bestCtrl,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'ベスト価格',
+                      labelText: l10n.bestPrice,
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: Theme.of(context).colorScheme.tertiary,
@@ -552,7 +625,7 @@ Future<bool?> _showProductSuggestionSheet(
                     controller: acceptableCtrl,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: '許容価格',
+                      labelText: l10n.acceptablePrice,
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(
                           color: Theme.of(context).colorScheme.tertiary,
@@ -571,12 +644,14 @@ Future<bool?> _showProductSuggestionSheet(
                   ),
                   TextField(
                     controller: memoCtrl,
-                    decoration: const InputDecoration(labelText: 'メモ（任意）'),
+                    decoration: InputDecoration(
+                      labelText: l10n.memoOptional,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'カテゴリー',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  Text(
+                    l10n.categoryHeading,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -584,7 +659,7 @@ Future<bool?> _showProductSuggestionSheet(
                     runSpacing: 4,
                     children: productCategories.map((cat) {
                       return FilterChip(
-                        label: Text(cat.label),
+                        label: Text(localizedCategoryLabel(cat.id, l10n)),
                         selected: selectedCategory == cat.id,
                         onSelected: (sel) => setSheetState(() {
                           selectedCategory = sel ? cat.id : null;
@@ -593,17 +668,18 @@ Future<bool?> _showProductSuggestionSheet(
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '特売日',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  Text(
+                    l10n.saleDaysHeading,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     children: List.generate(7, (index) {
                       final weekday = index + 1;
+                      final wdLabels = localizedWeekdayLabels(l10n);
                       return FilterChip(
-                        label: Text(weekdayLabels[index]),
+                        label: Text(wdLabels[index]),
                         selected: saleDays.contains(weekday),
                         onSelected: (sel) => setSheetState(() {
                           sel
@@ -626,13 +702,13 @@ Future<bool?> _showProductSuggestionSheet(
                                 int.tryParse(acceptableCtrl.text) ?? 0;
                             String? err;
                             if (nameVal.isEmpty) {
-                              err = '商品名を入力してください';
+                              err = l10n.enterProductName;
                             } else if (storeVal.isEmpty) {
-                              err = '店舗名を入力してください';
+                              err = l10n.enterStoreName;
                             } else if (best == 0) {
-                              err = 'ベスト価格を入力してください';
+                              err = l10n.enterBestPrice;
                             } else if (acceptable < best) {
-                              err = '許容価格はベスト価格以上にしてください';
+                              err = l10n.acceptablePriceConstraint;
                             }
                             if (err != null) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -662,7 +738,7 @@ Future<bool?> _showProductSuggestionSheet(
                               }
                             });
                           },
-                    child: const Text('保存して次へ'),
+                    child: Text(l10n.saveAndNext),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
@@ -677,7 +753,7 @@ Future<bool?> _showProductSuggestionSheet(
                               }
                             });
                           },
-                    child: const Text('この商品はスキップ'),
+                    child: Text(l10n.skipThisProduct),
                   ),
                 ],
               ),

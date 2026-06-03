@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../models/enums.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
@@ -22,30 +23,31 @@ class _InputViewState extends State<InputView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        const ViewTitle(
-          title: '入力',
-          subtitle: '価格基準、買うもの、購入履歴をここから追加します。',
+        ViewTitle(
+          title: l10n.inputTitle,
+          subtitle: l10n.inputSubtitle,
         ),
         const SizedBox(height: 16),
         SegmentedButton<EntryMode>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: EntryMode.product,
-              icon: Icon(Icons.inventory_2_outlined),
-              label: Text('商品'),
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: Text(l10n.segProduct),
             ),
             ButtonSegment(
               value: EntryMode.shoppingItem,
-              icon: Icon(Icons.checklist),
-              label: Text('買うもの'),
+              icon: const Icon(Icons.checklist),
+              label: Text(l10n.segShopping),
             ),
             ButtonSegment(
               value: EntryMode.purchase,
-              icon: Icon(Icons.receipt_long_outlined),
-              label: Text('購入'),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: Text(l10n.segPurchase),
             ),
           ],
           selected: {mode},
@@ -56,25 +58,25 @@ class _InputViewState extends State<InputView> {
           FilledButton.icon(
             onPressed: () => showProductSheet(context, widget.store),
             icon: const Icon(Icons.add),
-            label: const Text('商品を登録'),
+            label: Text(l10n.addProductBtn),
           )
         else if (mode == EntryMode.shoppingItem)
           FilledButton.icon(
             onPressed: () => showShoppingItemSheet(context, widget.store),
             icon: const Icon(Icons.add),
-            label: const Text('買うものを登録'),
+            label: Text(l10n.addShoppingBtn),
           )
         else ...[
           FilledButton.icon(
             onPressed: () => showPurchaseSheet(context, widget.store),
             icon: const Icon(Icons.add),
-            label: const Text('購入履歴を登録'),
+            label: Text(l10n.addPurchaseBtn),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () => showReceiptFlow(context, widget.store),
             icon: const Icon(Icons.document_scanner_outlined),
-            label: const Text('レシートを読み取る'),
+            label: Text(l10n.scanReceiptBtn),
           ),
         ],
       ],

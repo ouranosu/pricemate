@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:intl/intl.dart';
+
 import '../../ad_banner.dart';
 import '../../core/debug.dart';
 import '../../core/formatters.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/purchase_record.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
@@ -45,10 +48,10 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
     }).toList();
   }
 
-  List<Object> _buildFlatList(List<PurchaseRecord> records) {
+  List<Object> _buildFlatList(List<PurchaseRecord> records, String locale) {
     final map = <String, List<PurchaseRecord>>{};
     for (final r in records) {
-      final key = '${r.purchasedAt.year}年${r.purchasedAt.month}月';
+      final key = DateFormat.yMMMM(locale).format(r.purchasedAt);
       (map[key] ??= []).add(r);
     }
     final flat = <Object>[];
@@ -61,9 +64,11 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
     final colorScheme = Theme.of(context).colorScheme;
     final filtered = _filtered;
-    final flatList = _buildFlatList(filtered);
+    final flatList = _buildFlatList(filtered, locale);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -76,10 +81,10 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: ViewTitle(
-              title: '購入履歴',
-              subtitle: 'スワイプで削除、タップで編集できます。',
+              title: l10n.historyTitle,
+              subtitle: l10n.historySubtitle,
               action: IconButton.filledTonal(
-                tooltip: '購入履歴を追加',
+                tooltip: l10n.addPurchaseTooltip,
                 icon: const Icon(Icons.add),
                 onPressed: () =>
                     _showAddPurchaseSheet(context, widget.store),
@@ -91,7 +96,7 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: '商品名・店舗名で検索',
+                hintText: l10n.searchByNameStore,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isNotEmpty
                     ? IconButton(
@@ -109,9 +114,9 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
           const BannerAdWidget(),
           Expanded(
             child: widget.store.purchaseRecords.isEmpty
-                ? const EmptyMessage(message: '購入履歴はまだありません。')
+                ? EmptyMessage(message: l10n.emptyHistory)
                 : filtered.isEmpty
-                ? const EmptyMessage(message: '検索結果がありません。')
+                ? EmptyMessage(message: l10n.noSearchResults)
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                     itemCount: flatList.length,
@@ -191,7 +196,7 @@ Future<void> _showAddPurchaseSheet(
         children: [
           ListTile(
             leading: const Icon(Icons.edit_outlined),
-            title: const Text('手動で登録'),
+            title: Text(AppLocalizations.of(context)!.addManually),
             onTap: () {
               Navigator.pop(ctx);
               showPurchaseSheet(context, store);
@@ -199,7 +204,7 @@ Future<void> _showAddPurchaseSheet(
           ),
           ListTile(
             leading: const Icon(Icons.document_scanner_outlined),
-            title: const Text('レシートを読み取る'),
+            title: Text(AppLocalizations.of(context)!.scanReceipt),
             onTap: () {
               Navigator.pop(ctx);
               showReceiptFlow(context, store);

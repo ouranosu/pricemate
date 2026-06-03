@@ -16,7 +16,9 @@
       "WebFetch(domain:datatracker.ietf.org)",
       "WebFetch(domain:developers.cloudflare.com)",
       "Bash(New-Item -ItemType Directory -Force lib/core, lib/models, lib/store, lib/widgets, lib/features/auth, lib/features/onboarding, lib/features/home, lib/features/shopping, lib/features/history, lib/features/products, lib/features/input, lib/features/settings, lib/features/receipt)",
-      "Bash(Out-Null)"
+      "Bash(Out-Null)",
+      "Bash(flutter gen-l10n *)",
+      "Bash(Get-ChildItem \"C:\\\\code\\\\okstore\\\\pricemate\\\\lib\\\\l10n\\\\\" 2>&1 *)"
     ]
   }
 }

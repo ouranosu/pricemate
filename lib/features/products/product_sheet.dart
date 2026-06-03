@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../core/debug.dart';
-import '../../core/formatters.dart';
-import '../../models/product.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/product.dart'
+    show
+        Product,
+        productCategories,
+        localizedCategoryLabel,
+        localizedWeekdayLabels;
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -36,6 +41,7 @@ Future<void> showProductSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return DraggableScrollableSheet(
             expand: false,
             initialChildSize: 0.88,
@@ -64,42 +70,52 @@ Future<void> showProductSheet(
                       ),
                       children: [
                         SheetTitle(
-                          title: product == null ? '商品を登録' : '商品を編集',
+                          title: product == null
+                              ? l10n.addProductSheet
+                              : l10n.editProductSheet,
                         ),
                         TextField(
                           controller: name,
-                          decoration: const InputDecoration(labelText: '商品名'),
+                          decoration: InputDecoration(
+                            labelText: l10n.productName,
+                          ),
                         ),
                         TextField(
                           controller: storeName,
-                          decoration: const InputDecoration(labelText: '店舗名'),
+                          decoration: InputDecoration(
+                            labelText: l10n.storeName,
+                          ),
                         ),
                         TextField(
                           controller: size,
-                          decoration:
-                              const InputDecoration(labelText: 'サイズ（任意）'),
+                          decoration: InputDecoration(
+                            labelText: l10n.sizeOptional,
+                          ),
                         ),
                         TextField(
                           controller: bestPrice,
                           keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: 'ベスト価格'),
+                          decoration: InputDecoration(
+                            labelText: l10n.bestPrice,
+                          ),
                         ),
                         TextField(
                           controller: acceptablePrice,
                           keyboardType: TextInputType.number,
-                          decoration:
-                              const InputDecoration(labelText: '許容価格'),
+                          decoration: InputDecoration(
+                            labelText: l10n.acceptablePrice,
+                          ),
                         ),
                         TextField(
                           controller: memo,
-                          decoration:
-                              const InputDecoration(labelText: 'メモ（任意）'),
+                          decoration: InputDecoration(
+                            labelText: l10n.memoOptional,
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'カテゴリー',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        Text(
+                          l10n.categoryHeading,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -107,7 +123,9 @@ Future<void> showProductSheet(
                           runSpacing: 4,
                           children: productCategories.map((cat) {
                             return FilterChip(
-                              label: Text(cat.label),
+                              label: Text(
+                                localizedCategoryLabel(cat.id, l10n),
+                              ),
                               selected: selectedCategory == cat.id,
                               onSelected: (selected) {
                                 setSheetState(() {
@@ -118,17 +136,19 @@ Future<void> showProductSheet(
                           }).toList(),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          '特売日',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        Text(
+                          l10n.saleDaysHeading,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           children: List.generate(7, (index) {
                             final weekday = index + 1;
+                            final wdLabels =
+                                localizedWeekdayLabels(l10n);
                             return FilterChip(
-                              label: Text(weekdayLabels[index]),
+                              label: Text(wdLabels[index]),
                               selected: saleDays.contains(weekday),
                               onSelected: (selected) {
                                 setSheetState(() {
@@ -156,14 +176,15 @@ Future<void> showProductSheet(
                                       int.tryParse(acceptablePrice.text) ?? 0;
                                   String? validationError;
                                   if (nameVal.isEmpty) {
-                                    validationError = '商品名を入力してください';
+                                    validationError = l10n.enterProductName;
                                   } else if (storeNameVal.isEmpty) {
-                                    validationError = '店舗名を入力してください';
+                                    validationError = l10n.enterStoreName;
                                   } else if (bestPriceVal == 0) {
-                                    validationError = 'ベスト価格を入力してください';
+                                    validationError = l10n.enterBestPrice;
                                   } else if (acceptablePriceVal <
                                       bestPriceVal) {
-                                    validationError = '許容価格はベスト価格以上にしてください';
+                                    validationError =
+                                        l10n.acceptablePriceConstraint;
                                   }
                                   if (validationError != null) {
                                     ScaffoldMessenger.of(
@@ -214,7 +235,7 @@ Future<void> showProductSheet(
                                     }
                                   });
                                 },
-                          child: const Text('保存'),
+                          child: Text(l10n.save),
                         ),
                       ],
                     ),
@@ -247,9 +268,12 @@ Future<void> showProductSheet(
     if (result != null) {
       store.upsertProduct(product, result);
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(product == null ? '商品を登録しました' : '商品を更新しました'),
+            content: Text(
+              product == null ? l10n.productAdded : l10n.productUpdated,
+            ),
           ),
         );
       }

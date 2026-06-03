@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../ad_banner.dart';
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/enums.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
@@ -21,6 +22,7 @@ class ShoppingListView extends StatelessWidget {
         return a.urgency == Urgency.now ? -1 : 1;
       });
 
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Expanded(
@@ -34,17 +36,17 @@ class ShoppingListView extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
                 ViewTitle(
-                  title: '買うものリスト',
-                  subtitle: 'スワイプで削除、タップで編集できます。',
+                  title: l10n.shoppingListTitle,
+                  subtitle: l10n.shoppingListSubtitle,
                   action: IconButton.filledTonal(
-                    tooltip: '買うものを追加',
+                    tooltip: l10n.addShoppingItemTooltip,
                     icon: const Icon(Icons.add),
                     onPressed: () => showShoppingItemSheet(context, store),
                   ),
                 ),
                 const SizedBox(height: 12),
                 if (sorted.isEmpty)
-                  const EmptyMessage(message: '買うものはまだありません。')
+                  EmptyMessage(message: l10n.emptyShoppingList)
                 else
                   ...sorted.map((item) {
                     return Dismissible(
@@ -75,7 +77,9 @@ class ShoppingListView extends StatelessWidget {
                             ),
                           ),
                           subtitle: Text(
-                            item.urgency == Urgency.now ? 'すぐ必要' : 'そのうち',
+                            item.urgency == Urgency.now
+                                ? l10n.urgencyNow
+                                : l10n.urgencyLater,
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () =>

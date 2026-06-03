@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/debug.dart';
 import '../features/home/home_view.dart';
+import '../l10n/app_localizations.dart';
 import '../features/history/purchase_history_view.dart';
 import '../features/input/input_view.dart';
 import '../features/products/product_list_view.dart';
@@ -42,6 +43,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
   Widget build(BuildContext context) {
     final store = widget.store;
 
+    final l10n = AppLocalizations.of(context)!;
     debugLog('PriceMateShell build selectedIndex=$selectedIndex');
     return Scaffold(
       appBar: AppBar(
@@ -49,11 +51,11 @@ class _PriceMateShellState extends State<PriceMateShell> {
         centerTitle: false,
         actions: [
           IconButton(
-            tooltip: '通知（近日公開）',
+            tooltip: l10n.notifTooltip,
             icon: const Icon(Icons.notifications_none),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('通知機能は近日公開予定です')),
+                SnackBar(content: Text(l10n.notifComingSoon)),
               );
             },
           ),
@@ -67,7 +69,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: '入力',
+        tooltip: l10n.fabTooltip,
         onPressed: () {
           debugLog('FAB tap input');
           setState(() => selectedIndex = 5);
@@ -84,7 +86,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
               child: _TabButton(
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home,
-                label: 'ホーム',
+                label: l10n.tabHome,
                 active: selectedIndex == 0,
                 onTap: () {
                   debugLog('Tab tap home');
@@ -96,7 +98,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
               child: _TabButton(
                 icon: Icons.checklist_outlined,
                 activeIcon: Icons.checklist,
-                label: '買い物',
+                label: l10n.tabShopping,
                 active: selectedIndex == 1,
                 onTap: () {
                   debugLog('Tab tap shopping');
@@ -108,7 +110,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
               child: _TabButton(
                 icon: Icons.history,
                 activeIcon: Icons.history,
-                label: '履歴',
+                label: l10n.tabHistory,
                 active: selectedIndex == 2,
                 onTap: () {
                   debugLog('Tab tap history');
@@ -120,7 +122,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
               child: _TabButton(
                 icon: Icons.inventory_2_outlined,
                 activeIcon: Icons.inventory_2,
-                label: '商品',
+                label: l10n.tabProducts,
                 active: selectedIndex == 3,
                 onTap: () {
                   debugLog('Tab tap products');
@@ -132,7 +134,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
               child: _TabButton(
                 icon: Icons.settings_outlined,
                 activeIcon: Icons.settings,
-                label: '設定',
+                label: l10n.tabSettings,
                 active: selectedIndex == 4,
                 onTap: () {
                   debugLog('Tab tap settings');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../models/product.dart';
 import '../../models/purchase_record.dart';
 import '../../store/app_store.dart';
@@ -34,6 +35,7 @@ Future<void> showPurchaseSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -45,19 +47,23 @@ Future<void> showPurchaseSheet(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SheetTitle(title: record == null ? '購入履歴を登録' : '購入履歴を編集'),
+                SheetTitle(
+                  title: record == null
+                      ? l10n.addPurchaseSheet
+                      : l10n.editPurchaseSheet,
+                ),
                 TextField(
                   controller: productName,
-                  decoration: const InputDecoration(labelText: '商品名'),
+                  decoration: InputDecoration(labelText: l10n.productName),
                 ),
                 TextField(
                   controller: storeName,
-                  decoration: const InputDecoration(labelText: '店舗名'),
+                  decoration: InputDecoration(labelText: l10n.storeName),
                 ),
                 TextField(
                   controller: price,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: '購入価格'),
+                  decoration: InputDecoration(labelText: l10n.purchasePrice),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
@@ -69,13 +75,17 @@ Future<void> showPurchaseSheet(
                           final priceVal = int.tryParse(price.text) ?? 0;
                           if (productNameVal.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('商品名を入力してください')),
+                              SnackBar(
+                                content: Text(l10n.enterProductName),
+                              ),
                             );
                             return;
                           }
                           if (priceVal == 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('購入価格を入力してください')),
+                              SnackBar(
+                                content: Text(l10n.enterPurchasePrice),
+                              ),
                             );
                             return;
                           }
@@ -105,7 +115,7 @@ Future<void> showPurchaseSheet(
                             if (context.mounted) Navigator.pop(context, saved);
                           });
                         },
-                  child: const Text('保存'),
+                  child: Text(l10n.save),
                 ),
               ],
             ),
@@ -135,10 +145,11 @@ Future<void> showPurchaseSheet(
         store.addPurchaseRecord(result);
       }
       if (context.mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              record == null ? '購入履歴を登録しました' : '購入履歴を更新しました',
+              record == null ? l10n.purchaseAdded : l10n.purchaseUpdated,
             ),
           ),
         );

@@ -5,9 +5,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../ad_banner.dart';
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
 import 'invite_sheets.dart';
+import 'language_sheet.dart';
 import 'legal_view.dart';
 import 'members_sheet.dart';
 import 'theme_sheet.dart';
@@ -24,23 +26,34 @@ class SettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        const ViewTitle(
-        title: '設定',
-        subtitle: '共有、アプリ情報、アカウントを管理します。',
-      ),
+        ViewTitle(
+          title: l10n.settingsTitle,
+          subtitle: l10n.settingsSubtitle,
+        ),
         const SizedBox(height: 12),
         Card(
           child: Column(
             children: [
               _SettingsTile(
                 icon: Icons.palette_outlined,
-                title: 'テーマカラー',
+                title: l10n.themeColorSetting,
                 subtitle: store.selectedTheme.name,
                 onTap: () => showThemeSheet(context, store),
+              ),
+              const Divider(height: 1),
+              ValueListenableBuilder<Locale?>(
+                valueListenable: store.localeNotifier,
+                builder: (context, locale, _) => _SettingsTile(
+                  icon: Icons.language_outlined,
+                  title: l10n.languageSetting,
+                  subtitle: localeName(locale),
+                  onTap: () => showLanguageSheet(context, store),
+                ),
               ),
             ],
           ),
@@ -51,19 +64,19 @@ class SettingsView extends StatelessWidget {
             children: [
               _SettingsTile(
                 icon: Icons.person_add_alt,
-                title: 'パートナーを招待',
+                title: l10n.invitePartner,
                 onTap: () => showInviteSheet(context, store),
               ),
               const Divider(height: 1),
               _SettingsTile(
                 icon: Icons.vpn_key_outlined,
-                title: '招待コードを入力',
+                title: l10n.enterInviteCode,
                 onTap: () => showAcceptInviteSheet(context, store),
               ),
               const Divider(height: 1),
               _SettingsTile(
                 icon: Icons.group_outlined,
-                title: '家族メンバー管理',
+                title: l10n.manageFamilyMembers,
                 onTap: () => showMembersSheet(context, store),
               ),
               if (store.activeSpaceId != null &&
@@ -71,7 +84,7 @@ class SettingsView extends StatelessWidget {
                 const Divider(height: 1),
                 _SettingsTile(
                   icon: Icons.exit_to_app_outlined,
-                  title: 'スペースを離れる',
+                  title: l10n.leaveSpaceSetting,
                   onTap: () => _confirmLeaveSpace(context, store),
                 ),
               ],
@@ -86,7 +99,7 @@ class SettingsView extends StatelessWidget {
             children: [
               _SettingsTile(
                 icon: Icons.description_outlined,
-                title: '利用規約',
+                title: l10n.termsOfService,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(
@@ -101,7 +114,7 @@ class SettingsView extends StatelessWidget {
               const Divider(height: 1),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
-                title: 'プライバシーポリシー',
+                title: l10n.privacyPolicy,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(
@@ -116,26 +129,26 @@ class SettingsView extends StatelessWidget {
               const Divider(height: 1),
               _SettingsTile(
                 icon: Icons.favorite_border,
-                title: 'スペシャルサンクス',
+                title: l10n.specialThanks,
                 onTap: () => showDialog<void>(
                   context: context,
                   builder: (dialogContext) => AlertDialog(
-                    title: const Text('スペシャルサンクス'),
-                    content: const Text('このアプリの開発にご協力いただいた皆さまに感謝します。'),
+                    title: Text(l10n.specialThanks),
+                    content: Text(l10n.specialThanksBody),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
-                        child: const Text('閉じる'),
+                        child: Text(l10n.close),
                       ),
                     ],
                   ),
                 ),
               ),
               const Divider(height: 1),
-              const ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('バージョン'),
-                trailing: Text('1.0.0'),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: Text(l10n.versionLabel),
+                trailing: const Text('1.0.0'),
               ),
             ],
           ),
@@ -144,14 +157,14 @@ class SettingsView extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onLogout,
           icon: const Icon(Icons.logout),
-          label: const Text('ログアウト'),
+          label: Text(l10n.logout),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
           onPressed: () => _confirmDeleteAccount(context, store, onLogout),
           icon: const Icon(Icons.delete_forever_outlined),
-          label: const Text('アカウントを削除'),
+          label: Text(l10n.deleteAccountSetting),
         ),
       ],
     );
@@ -186,20 +199,21 @@ class _SettingsTile extends StatelessWidget {
 Future<void> _confirmLeaveSpace(BuildContext context, AppStore store) async {
   final userId = store.activeUserId;
   if (userId == null) return;
+  final l10n = AppLocalizations.of(context)!;
 
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('スペースを離れる'),
-      content: const Text('共有スペースを離れると、自分の個人スペースに戻ります。再度参加するには招待コードが必要です。'),
+      title: Text(l10n.leaveSpaceTitle),
+      content: Text(l10n.leaveSpaceBody),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('キャンセル'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('離れる'),
+          child: Text(l10n.leave),
         ),
       ],
     ),
@@ -211,13 +225,13 @@ Future<void> _confirmLeaveSpace(BuildContext context, AppStore store) async {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('個人スペースに戻りました')));
+    ).showSnackBar(SnackBar(content: Text(l10n.leaveSuccess)));
   } catch (e) {
     debugLog('leaveSharedSpace error: $e');
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('離脱に失敗しました。$e')));
+    ).showSnackBar(SnackBar(content: Text(l10n.leaveFailed(e.toString()))));
   }
 }
 
@@ -226,21 +240,22 @@ Future<void> _confirmDeleteAccount(
   AppStore store,
   VoidCallback onLogout,
 ) async {
+  final l10n = AppLocalizations.of(context)!;
   final colorScheme = Theme.of(context).colorScheme;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('アカウントを削除'),
-      content: const Text('すべてのデータが失われます。この操作は取り消せません。'),
+      title: Text(l10n.deleteAccountTitle),
+      content: Text(l10n.deleteAccountBody),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('キャンセル'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
           onPressed: () => Navigator.pop(dialogContext, true),
-          child: const Text('削除する'),
+          child: Text(l10n.delete),
         ),
       ],
     ),
@@ -268,9 +283,10 @@ Future<void> _confirmDeleteAccount(
     await user.delete();
   } on FirebaseAuthException catch (e) {
     if (!context.mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final message = e.code == 'requires-recent-login'
-        ? 'セキュリティのため再ログインが必要です。一度ログアウトして再度ログインしてください。'
-        : '削除に失敗しました。${e.code}';
+        ? l10n.requiresRecentLogin
+        : l10n.deleteFailedCode(e.code);
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

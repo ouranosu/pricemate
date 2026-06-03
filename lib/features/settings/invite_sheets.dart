@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/debug.dart';
+import '../../l10n/app_localizations.dart';
 import '../../store/app_store.dart';
 import '../../widgets/common_widgets.dart';
 
@@ -19,6 +20,7 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return Padding(
             padding: EdgeInsets.fromLTRB(
               20,
@@ -31,8 +33,8 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SheetTitle(title: 'パートナーを招待'),
-                  const Text('招待コードを作成して、家族に共有します。有効期限は7日間です。'),
+                  SheetTitle(title: l10n.inviteTitle),
+                  Text(l10n.inviteDesc),
                   if (errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Text(
@@ -60,13 +62,14 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
                           ClipboardData(text: inviteCode!),
                         );
                         if (context.mounted) {
+                          final l10n = AppLocalizations.of(context)!;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('招待コードをコピーしました')),
+                            SnackBar(content: Text(l10n.inviteCodeCopied)),
                           );
                         }
                       },
                       icon: const Icon(Icons.copy),
-                      label: const Text('招待コードをコピー'),
+                      label: Text(l10n.copyCode),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -90,7 +93,7 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
                                 'showInviteSheet create invite failed',
                               );
                               setSheetState(
-                                () => errorMessage = '招待コードを作成できませんでした。',
+                                () => errorMessage = l10n.createCodeFailed,
                               );
                             } finally {
                               setSheetState(() => loading = false);
@@ -103,7 +106,9 @@ Future<void> showInviteSheet(BuildContext context, AppStore store) async {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.vpn_key_outlined),
-                    label: Text(inviteCode == null ? '招待コードを作成' : '作り直す'),
+                    label: Text(
+                      inviteCode == null ? l10n.createCode : l10n.regenerate,
+                    ),
                   ),
                 ],
               ),
@@ -134,6 +139,7 @@ Future<void> showAcceptInviteSheet(
       sheetAnimation ??= ModalRoute.of(ctx)?.animation;
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final l10n = AppLocalizations.of(context)!;
           return SafeArea(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
@@ -146,16 +152,16 @@ Future<void> showAcceptInviteSheet(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SheetTitle(title: '招待コードを入力'),
-                  const Text('共有された8文字の招待コードを入力してください。'),
+                  SheetTitle(title: l10n.enterCodeTitle),
+                  Text(l10n.enterCodeDesc),
                   const SizedBox(height: 16),
                   TextField(
                     controller: codeController,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: '招待コード',
+                    decoration: InputDecoration(
+                      labelText: l10n.inviteCodeLabel,
                       hintText: '例: ABCD2345',
-                      prefixIcon: Icon(Icons.vpn_key_outlined),
+                      prefixIcon: const Icon(Icons.vpn_key_outlined),
                     ),
                   ),
                   if (errorMessage != null) ...[
@@ -197,7 +203,7 @@ Future<void> showAcceptInviteSheet(
                               );
                               if (!context.mounted) return;
                               setSheetState(() {
-                                errorMessage = inviteErrorMessage(error);
+                                errorMessage = inviteErrorMessage(error, l10n);
                               });
                             }
                             if (context.mounted) {
@@ -211,7 +217,7 @@ Future<void> showAcceptInviteSheet(
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.login),
-                    label: const Text('参加する'),
+                    label: Text(l10n.join),
                   ),
                 ],
               ),
@@ -240,7 +246,9 @@ Future<void> showAcceptInviteSheet(
       debugLog('showAcceptInviteSheet startListening done');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('共有スペースに参加しました。')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.joinedSpace),
+          ),
         );
       }
     }
@@ -261,16 +269,16 @@ Future<void> showAcceptInviteSheet(
   }
 }
 
-String inviteErrorMessage(Object error) {
+String inviteErrorMessage(Object error, AppLocalizations l10n) {
   if (error is StateError) {
     return error.message;
   }
   if (error is FirebaseException) {
     return switch (error.code) {
-      'permission-denied' => '招待コードを確認できませんでした。コードが正しいか、招待が有効か確認してください。',
-      'invalid-argument' => '招待コードの形式を確認してください。',
-      _ => '招待コードを確認できませんでした。${error.code}',
+      'permission-denied' => l10n.inviteErrPermission,
+      'invalid-argument' => l10n.inviteErrInvalidArg,
+      _ => l10n.inviteErrGeneric(error.code),
     };
   }
-  return '招待コードを確認できませんでした。';
+  return l10n.inviteErrPermission;
 }

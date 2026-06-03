@@ -1,3 +1,5 @@
+import '../l10n/app_localizations.dart';
+
 class ProductCategory {
   const ProductCategory({required this.id, required this.label});
   final String id;
@@ -26,6 +28,32 @@ String categoryLabel(String? id) {
       )
       .label;
 }
+
+String localizedCategoryLabel(String? id, AppLocalizations l10n) {
+  return switch (id) {
+    'meat' => l10n.catMeat,
+    'fish' => l10n.catFish,
+    'egg' => l10n.catEgg,
+    'vegetable' => l10n.catVegetable,
+    'fruit' => l10n.catFruit,
+    'dairy' => l10n.catDairy,
+    'drink' => l10n.catDrink,
+    'snack' => l10n.catSnack,
+    'daily' => l10n.catDaily,
+    'other' => l10n.catOther,
+    _ => '',
+  };
+}
+
+List<String> localizedWeekdayLabels(AppLocalizations l10n) => [
+  l10n.wdMon,
+  l10n.wdTue,
+  l10n.wdWed,
+  l10n.wdThu,
+  l10n.wdFri,
+  l10n.wdSat,
+  l10n.wdSun,
+];
 
 class Product {
   Product({

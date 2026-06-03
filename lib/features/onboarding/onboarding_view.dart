@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../store/app_store.dart';
 import '../settings/invite_sheets.dart';
 
@@ -49,34 +50,27 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     final pages = [
-      const _OnboardingPage(
+      _OnboardingPage(
         icon: Icons.price_check_outlined,
-        body:
-            'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n'
-            '安かった金額を記録することで、スーパーで「これ高い？」と悩む時間をなくせます。',
+        body: l10n.ob1Body,
       ),
-      const _OnboardingPage(
+      _OnboardingPage(
         icon: Icons.document_scanner_outlined,
-        body:
-            'レシートを撮るだけでAIが読み取り、買い物履歴を記録できます。\n\n'
-            '最近買った物を見返して、重複購入を防げます。',
+        body: l10n.ob2Body,
       ),
-      const _OnboardingPage(
+      _OnboardingPage(
         icon: Icons.favorite_outline_rounded,
-        body:
-            'プライスメイト最大の特徴は、パートナーと情報を共有できること。\n\n'
-            '買い物メモも商品の購入金額もパートナーと共有し、すれ違いの原因を一つ取り除きましょう。',
+        body: l10n.ob3Body,
       ),
       _OnboardingInvitePage(store: widget.store, onNext: _nextPage),
       _OnboardingTrackingPage(onNext: _nextPage),
       _OnboardingPage(
         icon: Icons.check_circle_outline_rounded,
-        body:
-            'お疲れ様でした。それでは始めましょう。\n\n'
-            'まずはレシートを読み取り、買い物履歴を登録するところから始めるのがオススメです。',
+        body: l10n.ob5Body,
         iconColor: colorScheme.primaryContainer,
         iconOnColor: colorScheme.onPrimaryContainer,
       ),
@@ -95,7 +89,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: widget.onComplete,
-                          child: const Text('スキップ'),
+                          child: Text(l10n.obSkip),
                         ),
                       )
                     : const SizedBox.shrink(),
@@ -121,7 +115,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _nextPage,
-                    child: Text(_isFinalPage ? 'はじめる' : '次へ'),
+                    child: Text(_isFinalPage ? l10n.obStart : l10n.obNext),
                   ),
                 )
               else
@@ -193,6 +187,7 @@ class _OnboardingInvitePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -215,7 +210,7 @@ class _OnboardingInvitePage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'パートナーはAさんが招待コードを発行し、Bさんが入力することで完了します。今すぐ誰かと共有しますか？',
+            l10n.obInviteBody,
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurface,
@@ -231,7 +226,7 @@ class _OnboardingInvitePage extends StatelessWidget {
                 await showInviteSheet(context, store);
                 onNext();
               },
-              child: const Text('コードを発行する'),
+              child: Text(l10n.obInviteIssue),
             ),
           ),
           const SizedBox(height: 10),
@@ -242,11 +237,11 @@ class _OnboardingInvitePage extends StatelessWidget {
                 await showAcceptInviteSheet(context, store);
                 onNext();
               },
-              child: const Text('コードを入力する'),
+              child: Text(l10n.obInviteEnter),
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onNext, child: const Text('今はスキップ')),
+          TextButton(onPressed: onNext, child: Text(l10n.obInviteSkip)),
         ],
       ),
     );
@@ -260,6 +255,7 @@ class _OnboardingTrackingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
@@ -282,8 +278,7 @@ class _OnboardingTrackingPage extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            '広告の最適化のため、トラッキングの許可をお願いします。\n\n'
-            '許可しなくてもプライスメイトは問題なくご利用いただけます。',
+            l10n.obTrackingBody,
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: colorScheme.onSurface,
@@ -301,11 +296,11 @@ class _OnboardingTrackingPage extends StatelessWidget {
                 }
                 onNext();
               },
-              child: const Text('許可する'),
+              child: Text(l10n.obTrackingAllow),
             ),
           ),
           const SizedBox(height: 10),
-          TextButton(onPressed: onNext, child: const Text('スキップ')),
+          TextButton(onPressed: onNext, child: Text(l10n.skip)),
         ],
       ),
     );

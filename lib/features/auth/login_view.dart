@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class LoginView extends StatefulWidget {
   const LoginView({
     super.key,
@@ -41,6 +43,7 @@ class _LoginViewState extends State<LoginView> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -65,7 +68,7 @@ class _LoginViewState extends State<LoginView> {
             ),
             const SizedBox(height: 28),
             Text(
-              creatingAccount ? '新規アカウント作成' : 'ログイン',
+              creatingAccount ? l10n.createAccountTitle : l10n.loginTitle,
               style: Theme.of(
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
@@ -76,9 +79,9 @@ class _LoginViewState extends State<LoginView> {
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(
-                labelText: 'メールアドレス',
-                prefixIcon: Icon(Icons.mail_outline),
+              decoration: InputDecoration(
+                labelText: l10n.emailAddress,
+                prefixIcon: const Icon(Icons.mail_outline),
               ),
             ),
             const SizedBox(height: 12),
@@ -86,9 +89,9 @@ class _LoginViewState extends State<LoginView> {
               controller: passwordController,
               obscureText: true,
               autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(
-                labelText: 'パスワード',
-                prefixIcon: Icon(Icons.lock_outline),
+              decoration: InputDecoration(
+                labelText: l10n.password,
+                prefixIcon: const Icon(Icons.lock_outline),
               ),
             ),
             if (errorMessage != null) ...[
@@ -103,7 +106,9 @@ class _LoginViewState extends State<LoginView> {
                       creatingAccount ? createAccount : emailLogin,
                     ),
               icon: const Icon(Icons.mail_outline),
-              label: Text(creatingAccount ? 'アカウントを作成' : 'メールでログイン'),
+              label: Text(
+                creatingAccount ? l10n.createAccountBtn : l10n.loginWithEmail,
+              ),
             ),
             TextButton(
               onPressed: loading
@@ -114,7 +119,9 @@ class _LoginViewState extends State<LoginView> {
                         errorMessage = null;
                       });
                     },
-              child: Text(creatingAccount ? 'ログインに戻る' : 'アカウントを作成'),
+              child: Text(
+                creatingAccount ? l10n.backToLogin : l10n.createAccountBtn,
+              ),
             ),
             if (!creatingAccount) ...[
               const SizedBox(height: 12),
@@ -123,7 +130,7 @@ class _LoginViewState extends State<LoginView> {
                     ? null
                     : () => runAuthAction(widget.onGoogleLogin),
                 icon: const Icon(Icons.g_mobiledata),
-                label: const Text('Googleでログイン'),
+                label: Text(l10n.loginWithGoogle),
               ),
               if (Platform.isIOS && widget.onAppleLogin != null) ...[
                 const SizedBox(height: 12),
@@ -140,7 +147,7 @@ class _LoginViewState extends State<LoginView> {
               ],
               TextButton(
                 onPressed: loading ? null : resetPassword,
-                child: const Text('パスワードを忘れた方はこちら'),
+                child: Text(l10n.forgotPassword),
               ),
             ],
             if (loading) ...[
@@ -178,11 +185,12 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> resetPassword() async {
+    final l10n = AppLocalizations.of(context)!;
     final email = emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('メールアドレスを入力してからタップしてください')));
+      ).showSnackBar(SnackBar(content: Text(l10n.enterEmailFirst)));
       return;
     }
     try {
@@ -190,16 +198,17 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('パスワードリセットメールを送信しました')));
+      ).showSnackBar(SnackBar(content: Text(l10n.passwordResetSent)));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('送信に失敗しました。$error')));
+      ).showSnackBar(SnackBar(content: Text(l10n.sendFailed(error.toString()))));
     }
   }
 
   Future<void> runAuthAction(Future<void> Function() action) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       loading = true;
       errorMessage = null;
@@ -211,26 +220,26 @@ class _LoginViewState extends State<LoginView> {
       debugPrint(
         'FirebaseAuthException: code=${error.code}, message=${error.message}',
       );
-      setState(() => errorMessage = authErrorMessage(error));
+      setState(() => errorMessage = authErrorMessage(error, l10n));
     } on GoogleSignInException catch (error) {
       debugPrint(
         'GoogleSignInException: code=${error.code.name}, '
         'description=${error.description}, details=${error.details}',
       );
-      setState(() => errorMessage = googleSignInErrorMessage(error));
+      setState(() => errorMessage = googleSignInErrorMessage(error, l10n));
     } on SignInWithAppleAuthorizationException catch (error) {
       debugPrint(
         'AppleSignInException: code=${error.code}, message=${error.message}',
       );
       if (error.code != AuthorizationErrorCode.canceled) {
         setState(
-          () => errorMessage = 'Appleログインに失敗しました。${error.message}',
+          () => errorMessage = l10n.appleLoginFailed(error.message),
         );
       }
     } catch (error, stackTrace) {
       debugPrint('Auth error: $error');
       debugPrintStack(stackTrace: stackTrace);
-      setState(() => errorMessage = 'ログインに失敗しました。$error');
+      setState(() => errorMessage = l10n.loginFailed(error.toString()));
     } finally {
       if (mounted) {
         setState(() => loading = false);
@@ -239,32 +248,32 @@ class _LoginViewState extends State<LoginView> {
   }
 }
 
-String googleSignInErrorMessage(GoogleSignInException error) {
+String googleSignInErrorMessage(
+  GoogleSignInException error,
+  AppLocalizations l10n,
+) {
   return switch (error.code) {
-    GoogleSignInExceptionCode.canceled =>
-      'Googleログインが完了しませんでした。${error.description ?? 'アカウント選択後に出る場合は、FirebaseのAndroid SHA設定とgoogle-services.jsonを確認してください。'}',
+    GoogleSignInExceptionCode.canceled => l10n.googleErrCanceled,
     GoogleSignInExceptionCode.clientConfigurationError =>
-      'Googleログイン設定が未完了です。${error.description ?? 'FirebaseにAndroidのSHA-1/SHA-256を登録し、google-services.jsonを更新してください。'}',
+      l10n.googleErrClientConfig,
     GoogleSignInExceptionCode.providerConfigurationError =>
-      'Googleログインのプロバイダ設定を確認してください。${error.description ?? ''}',
-    GoogleSignInExceptionCode.uiUnavailable =>
-      'Googleログイン画面を表示できませんでした。${error.description ?? ''}',
-    _ =>
-      'Googleログインに失敗しました。code=${error.code.name}, description=${error.description ?? 'なし'}',
+      l10n.googleErrProviderConfig,
+    GoogleSignInExceptionCode.uiUnavailable => l10n.googleErrUiUnavailable,
+    _ => l10n.googleErrGeneric(error.code.name),
   };
 }
 
-String authErrorMessage(FirebaseAuthException error) {
+String authErrorMessage(FirebaseAuthException error, AppLocalizations l10n) {
   return switch (error.code) {
-    'invalid-email' => 'メールアドレスの形式を確認してください。',
-    'missing-password' => 'パスワードを入力してください。',
-    'weak-password' => 'パスワードは6文字以上で入力してください。',
-    'email-already-in-use' => 'このメールアドレスは既に登録されています。',
+    'invalid-email' => l10n.authErrInvalidEmail,
+    'missing-password' => l10n.authErrMissingPw,
+    'weak-password' => l10n.authErrWeakPw,
+    'email-already-in-use' => l10n.authErrEmailInUse,
     'user-not-found' ||
     'wrong-password' ||
-    'invalid-credential' => 'メールアドレスまたはパスワードが違います。',
-    'network-request-failed' => 'ネットワーク接続を確認してください。',
-    'popup-closed-by-user' || 'canceled' => 'ログインがキャンセルされました。',
-    _ => 'ログインに失敗しました。${error.code}',
+    'invalid-credential' => l10n.authErrInvalidCred,
+    'network-request-failed' => l10n.authErrNetwork,
+    'popup-closed-by-user' || 'canceled' => l10n.authErrCanceled,
+    _ => l10n.authErrGeneric(error.code),
   };
 }

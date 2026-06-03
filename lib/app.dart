@@ -8,9 +8,14 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import 'package:flutter_localizations/flutter_localizations.dart';
+
+import 'l10n/app_localizations.dart';
+
 import 'core/debug.dart';
 import 'core/theme.dart';
 import 'features/auth/login_view.dart';
+import 'features/onboarding/language_view.dart';
 import 'features/onboarding/loading_view.dart';
 import 'features/onboarding/onboarding_view.dart';
 import 'features/onboarding/splash_view.dart';
@@ -33,6 +38,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
   bool showSplash = true;
   bool onboardingLoaded = false;
   bool onboardingDone = false;
+  bool languageDone = false;
   bool signedIn = false;
   bool _reviewMode = false;
 
@@ -43,6 +49,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
     debugLog('PriceMateApp initState');
     loadOnboardingState();
     store.loadSavedTheme();
+    store.loadSavedLocale();
     Future<void>.delayed(const Duration(milliseconds: 2000), () {
       if (!mounted) return;
       debugLog('Splash finished');
@@ -58,12 +65,6 @@ class _PriceMateAppState extends State<PriceMateApp> {
     super.dispose();
   }
 
-  Future<void> _reviewLogin() async {
-    await _reviewStore.initReviewSession();
-    if (!mounted) return;
-    setState(() => _reviewMode = true);
-  }
-
   Future<void> _reviewLogout() async {
     _reviewStore.clearCloudSession();
     setState(() => _reviewMode = false);
@@ -74,6 +75,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
     if (!mounted) return;
     setState(() {
       onboardingDone = preferences.getBool('onboardingDone') ?? false;
+      languageDone = preferences.getBool('languageDone') ?? false;
       onboardingLoaded = true;
     });
   }
@@ -83,12 +85,26 @@ class _PriceMateAppState extends State<PriceMateApp> {
     return ValueListenableBuilder<AppThemePreset>(
       valueListenable: store.themeNotifier,
       builder: (context, theme, _) {
-        return MaterialApp(
-          title: 'PriceMate',
-          debugShowCheckedModeBanner: false,
-          navigatorObservers: [debugNavigatorObserver],
-          themeMode: ThemeMode.system,
-          theme: ThemeData(
+        return ValueListenableBuilder<Locale?>(
+          valueListenable: store.localeNotifier,
+          builder: (context, locale, _) {
+            return MaterialApp(
+              title: 'PriceMate',
+              debugShowCheckedModeBanner: false,
+              navigatorObservers: [debugNavigatorObserver],
+              locale: locale,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('ja'),
+                Locale('en'),
+              ],
+              themeMode: ThemeMode.system,
+              theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(
               seedColor: theme.seedColor,
@@ -117,7 +133,9 @@ class _PriceMateAppState extends State<PriceMateApp> {
               ),
             ),
           ),
-          home: _buildHome(),
+              home: _buildHome(),
+            );
+          },
         );
       },
     );
@@ -126,10 +144,14 @@ class _PriceMateAppState extends State<PriceMateApp> {
   Widget _buildHome() {
     debugLog(
       'buildHome splash=$showSplash onboardingLoaded=$onboardingLoaded '
-      'onboardingDone=$onboardingDone signedIn=$signedIn reviewMode=$_reviewMode',
+      'languageDone=$languageDone onboardingDone=$onboardingDone '
+      'signedIn=$signedIn reviewMode=$_reviewMode',
     );
     if (showSplash || !onboardingLoaded) {
       return const SplashView();
+    }
+    if (!onboardingDone && !languageDone) {
+      return LanguageView(onSelect: _completeLanguage);
     }
     if (!onboardingDone) {
       return OnboardingView(onComplete: completeOnboarding, store: store);
@@ -156,7 +178,6 @@ class _PriceMateAppState extends State<PriceMateApp> {
               onCreateAccount: createAccountWithEmail,
               onGoogleLogin: signInWithGoogle,
               onAppleLogin: signInWithApple,
-              onReviewLogin: _reviewLogin,
             );
           }
 
@@ -173,7 +194,6 @@ class _PriceMateAppState extends State<PriceMateApp> {
         onCreateAccount: (_, _) async => setState(() => signedIn = true),
         onGoogleLogin: () async => setState(() => signedIn = true),
         onAppleLogin: () async => setState(() => signedIn = true),
-        onReviewLogin: _reviewLogin,
       );
     }
     return PriceMateShell(
@@ -187,6 +207,14 @@ class _PriceMateAppState extends State<PriceMateApp> {
       email: email.trim(),
       password: password,
     );
+  }
+
+  Future<void> _completeLanguage(Locale? locale) async {
+    if (locale != null) store.selectLocale(locale);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('languageDone', true);
+    if (!mounted) return;
+    setState(() => languageDone = true);
   }
 
   Future<void> completeOnboarding() async {
