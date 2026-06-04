@@ -275,5 +275,10 @@
   "reviewHere": "ここを確認してください",
   "saveAndNext": "保存して次へ",
   "skipThisProduct": "この商品はスキップ",
-  "registrationComplete": "商品の登録が完了しました"
+  "registrationComplete": "商品の登録が完了しました",
+
+  "reviewTitle": "アプリのご評価をお願いします",
+  "reviewMessage": "プライスメイトはいかがですか？レビューをいただけると、開発の励みになります。",
+  "reviewWrite": "記入する",
+  "reviewLater": "また今度"
 }

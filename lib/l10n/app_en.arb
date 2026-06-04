@@ -233,5 +233,10 @@
   "reviewHere": "Please review",
   "saveAndNext": "Save & Next",
   "skipThisProduct": "Skip This Item",
-  "registrationComplete": "All products registered."
+  "registrationComplete": "All products registered.",
+
+  "reviewTitle": "Enjoying PriceMate?",
+  "reviewMessage": "We'd love to hear what you think! Would you mind leaving us a review?",
+  "reviewWrite": "Write a Review",
+  "reviewLater": "Maybe Later"
 }

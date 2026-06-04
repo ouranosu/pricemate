@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../../core/debug.dart';
 import '../../l10n/app_localizations.dart';
+import '../review/review_service.dart';
 import '../../models/enums.dart';
 import '../../models/shopping_item.dart';
 import '../../store/app_store.dart';
@@ -134,6 +135,10 @@ Future<void> showShoppingItemSheet(
             ),
           ),
         );
+        // 新規登録のみカウント（編集は除く）
+        if (item == null) {
+          ReviewService.recordAddAndCheck(context);
+        }
       }
     }
   }

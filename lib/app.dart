@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:upgrader/upgrader.dart';
 
 import 'l10n/app_localizations.dart';
 
@@ -35,6 +36,7 @@ class PriceMateApp extends StatefulWidget {
 class _PriceMateAppState extends State<PriceMateApp> {
   final AppStore store = AppStore();
   late final ReviewModeStore _reviewStore;
+  Upgrader? _upgrader;
   bool showSplash = true;
   bool onboardingLoaded = false;
   bool onboardingDone = false;
@@ -157,7 +159,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
       return OnboardingView(onComplete: completeOnboarding, store: store);
     }
     if (_reviewMode) {
-      return PriceMateShell(store: _reviewStore, onLogout: _reviewLogout);
+      return _wrapShell(PriceMateShell(store: _reviewStore, onLogout: _reviewLogout));
     }
     if (widget.useFirebase) {
       return StreamBuilder<User?>(
@@ -184,7 +186,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             store.connectUser(user);
           });
-          return PriceMateShell(store: store, onLogout: signOut);
+          return _wrapShell(PriceMateShell(store: store, onLogout: signOut));
         },
       );
     }
@@ -196,10 +198,27 @@ class _PriceMateAppState extends State<PriceMateApp> {
         onAppleLogin: () async => setState(() => signedIn = true),
       );
     }
-    return PriceMateShell(
-      store: store,
-      onLogout: () => setState(() => signedIn = false),
+    return _wrapShell(
+      PriceMateShell(
+        store: store,
+        onLogout: () => setState(() => signedIn = false),
+      ),
     );
+  }
+
+  /// PriceMateShell を upgrader のバージョンチェックでラップする。
+  /// ログイン後のユーザーにのみ更新ダイアログを表示するため、Shell に直接適用。
+  Widget _wrapShell(Widget shell) {
+    _upgrader ??= Upgrader(
+      messages: _buildUpgraderMessages(),
+      debugLogging: false,
+    );
+    return UpgradeAlert(upgrader: _upgrader!, child: shell);
+  }
+
+  UpgraderMessages _buildUpgraderMessages() {
+    final code = store.localeNotifier.value?.languageCode ?? 'ja';
+    return code == 'ja' ? _JaUpgraderMessages() : UpgraderMessages(code: 'en');
   }
 
   Future<void> signInWithEmail(String email, String password) async {
@@ -293,5 +312,29 @@ String _generateNonce([int length = 32]) {
 String _sha256ofString(String input) {
   final bytes = utf8.encode(input);
   return sha256.convert(bytes).toString();
+}
+
+class _JaUpgraderMessages extends UpgraderMessages {
+  _JaUpgraderMessages() : super(code: 'ja');
+
+  @override
+  String get body =>
+      '{{appName}} の新しいバージョン {{currentAppStoreVersion}} が利用可能です。'
+      '（現在: {{currentInstalledVersion}}）';
+
+  @override
+  String get buttonTitleIgnore => 'スキップ';
+
+  @override
+  String get buttonTitleLater => 'あとで';
+
+  @override
+  String get buttonTitleUpdate => 'アップデート';
+
+  @override
+  String get prompt => '今すぐアップデートしますか？';
+
+  @override
+  String get title => '新しいバージョンがあります';
 }
 

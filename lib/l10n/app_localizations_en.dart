@@ -702,4 +702,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registrationComplete => 'All products registered.';
+
+  @override
+  String get reviewTitle => 'Enjoying PriceMate?';
+
+  @override
+  String get reviewMessage =>
+      'We\'d love to hear what you think! Would you mind leaving us a review?';
+
+  @override
+  String get reviewWrite => 'Write a Review';
+
+  @override
+  String get reviewLater => 'Maybe Later';
 }

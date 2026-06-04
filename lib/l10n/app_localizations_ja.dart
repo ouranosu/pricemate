@@ -690,4 +690,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get registrationComplete => '商品の登録が完了しました';
+
+  @override
+  String get reviewTitle => 'アプリのご評価をお願いします';
+
+  @override
+  String get reviewMessage => 'プライスメイトはいかがですか？レビューをいただけると、開発の励みになります。';
+
+  @override
+  String get reviewWrite => '記入する';
+
+  @override
+  String get reviewLater => 'また今度';
 }

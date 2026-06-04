@@ -1393,6 +1393,30 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'商品の登録が完了しました'**
   String get registrationComplete;
+
+  /// No description provided for @reviewTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'アプリのご評価をお願いします'**
+  String get reviewTitle;
+
+  /// No description provided for @reviewMessage.
+  ///
+  /// In ja, this message translates to:
+  /// **'プライスメイトはいかがですか？レビューをいただけると、開発の励みになります。'**
+  String get reviewMessage;
+
+  /// No description provided for @reviewWrite.
+  ///
+  /// In ja, this message translates to:
+  /// **'記入する'**
+  String get reviewWrite;
+
+  /// No description provided for @reviewLater.
+  ///
+  /// In ja, this message translates to:
+  /// **'また今度'**
+  String get reviewLater;
 }
 
 class _AppLocalizationsDelegate
