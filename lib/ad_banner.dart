@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'core/debug.dart';
+
 // ─── 広告ユニット ID ──────────────────────────────────────────────────────────
 
 class AdConfig {
@@ -56,7 +58,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           });
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint(
+          debugLog(
             'BannerAd failed: code=${error.code} '
             'domain=${error.domain} message=${error.message}',
           );
