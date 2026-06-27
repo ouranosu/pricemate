@@ -715,4 +715,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewLater => 'Maybe Later';
+
+  @override
+  String get continueAsGuest => 'Continue without login';
+
+  @override
+  String get guestModeWarningTitle => 'Note about your data';
+
+  @override
+  String get guestModeWarningBody =>
+      'Without logging in, your data is saved only on this device.\n\nIf you delete the app or change your device, your data will be lost.';
+
+  @override
+  String get guestModeWarningConfirm => 'Continue anyway';
+
+  @override
+  String get loginToSync => 'Log in to sync data';
+
+  @override
+  String get guestModeLabel => 'Guest Mode';
+
+  @override
+  String get guestModeDataWarning => 'Data is saved on this device only.';
+
+  @override
+  String get tourSaleTitle => 'Today\'s Sales';
+
+  @override
+  String get tourSaleDesc =>
+      'Products with today set as a sale day appear here. Set sale days when registering a product.';
+
+  @override
+  String get tourUrgentTitle => 'Needed Now';
+
+  @override
+  String get tourUrgentDesc =>
+      'Shopping items marked \'Needed Now\' show up here as quick reminders.';
+
+  @override
+  String get tourRecentTitle => 'Recent Purchases';
+
+  @override
+  String get tourRecentDesc =>
+      'Your latest purchase records at a glance. Swipe left to delete.';
+
+  @override
+  String get tourShoppingAddTitle => 'Add Items';
+
+  @override
+  String get tourShoppingAddDesc =>
+      'Add a new item with urgency set to \'Now\' or \'Later\'.';
+
+  @override
+  String get tourShoppingListTitle => 'Shopping List';
+
+  @override
+  String get tourShoppingListDesc =>
+      'Tap to edit, swipe left to delete. Check the box when you\'ve bought it.';
+
+  @override
+  String get tourHistoryAddTitle => 'Add a Purchase';
+
+  @override
+  String get tourHistoryAddDesc =>
+      'Add a purchase manually or scan a receipt for automatic AI recognition.';
+
+  @override
+  String get tourHistorySearchTitle => 'Search History';
+
+  @override
+  String get tourHistorySearchDesc =>
+      'Filter your purchase history by product name or store.';
+
+  @override
+  String get tourProductAddTitle => 'Add a Product';
+
+  @override
+  String get tourProductAddDesc =>
+      'Register items with best and acceptable prices to build your household price guide.';
+
+  @override
+  String get tourProductSortTitle => 'Sort & Filter';
+
+  @override
+  String get tourProductSortDesc =>
+      'Sort by name or price, and use the category chips to filter the list.';
 }

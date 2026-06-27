@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../core/debug.dart';
 import '../features/home/home_view.dart';
@@ -45,7 +46,8 @@ class _PriceMateShellState extends State<PriceMateShell> {
 
     final l10n = AppLocalizations.of(context)!;
     debugLog('PriceMateShell build selectedIndex=$selectedIndex');
-    return Scaffold(
+    return ShowCaseWidget(
+      builder: (showcaseCtx) => Scaffold(
       appBar: AppBar(
         title: const Text('PriceMate'),
         centerTitle: false,
@@ -68,15 +70,6 @@ class _PriceMateShellState extends State<PriceMateShell> {
           onLogout: widget.onLogout,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: l10n.fabTooltip,
-        onPressed: () {
-          debugLog('FAB tap input');
-          setState(() => selectedIndex = 5);
-        },
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: BottomAppBar(
         height: 64,
         padding: EdgeInsets.zero,
@@ -145,6 +138,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
           ],
         ),
       ),
+    ),
     );
   }
 }

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../../ad_banner.dart';
 import '../../core/debug.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/product.dart'
@@ -31,6 +34,11 @@ Future<void> showProductSheet(
   var selectedCategory = product?.category;
   var isProcessing = false;
   Animation<double>? sheetAnimation;
+
+  // ゲストモードかつ新規登録時は広告をプリロード（シート表示中にロード完了を狙う）
+  final adHelper = (store.isGuestMode && product == null)
+      ? (InterstitialAdHelper()..load())
+      : null;
 
   debugLog('showProductSheet open product=${product?.id}');
   final result = await showModalBottomSheet<Product>(
@@ -254,7 +262,7 @@ Future<void> showProductSheet(
     'phase=${SchedulerBinding.instance.schedulerPhase}',
   );
 
-  void finalizeProductSheet() {
+  Future<void> finalizeProductSheet() async {
     debugLog(
       'showProductSheet finalize '
       'phase=${SchedulerBinding.instance.schedulerPhase}',
@@ -276,18 +284,20 @@ Future<void> showProductSheet(
             ),
           ),
         );
+        await adHelper?.show();
       }
     }
+    adHelper?.dispose();
   }
 
   final anim = sheetAnimation;
   if (anim == null || anim.status == AnimationStatus.dismissed) {
-    finalizeProductSheet();
+    unawaited(finalizeProductSheet());
   } else {
     void onStatus(AnimationStatus status) {
       if (status == AnimationStatus.dismissed) {
         anim.removeStatusListener(onStatus);
-        finalizeProductSheet();
+        unawaited(finalizeProductSheet());
       }
     }
 

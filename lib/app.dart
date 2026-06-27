@@ -22,6 +22,7 @@ import 'features/onboarding/onboarding_view.dart';
 import 'features/onboarding/splash_view.dart';
 import 'review_mode.dart';
 import 'store/app_store.dart';
+import 'store/guest_store.dart';
 import 'widgets/app_shell.dart';
 
 class PriceMateApp extends StatefulWidget {
@@ -36,6 +37,7 @@ class PriceMateApp extends StatefulWidget {
 class _PriceMateAppState extends State<PriceMateApp> {
   final AppStore store = AppStore();
   late final ReviewModeStore _reviewStore;
+  GuestModeStore? _guestStore;
   Upgrader? _upgrader;
   bool showSplash = true;
   bool onboardingLoaded = false;
@@ -43,6 +45,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
   bool languageDone = false;
   bool signedIn = false;
   bool _reviewMode = false;
+  bool _guestMode = false;
 
   @override
   void initState() {
@@ -64,12 +67,24 @@ class _PriceMateAppState extends State<PriceMateApp> {
     debugLog('PriceMateApp dispose');
     store.dispose();
     _reviewStore.dispose();
+    _guestStore?.dispose();
     super.dispose();
   }
 
   Future<void> _reviewLogout() async {
     _reviewStore.clearCloudSession();
     setState(() => _reviewMode = false);
+  }
+
+  Future<void> _enterGuestMode() async {
+    _guestStore ??= GuestModeStore();
+    await _guestStore!.initGuestSession();
+    if (!mounted) return;
+    setState(() => _guestMode = true);
+  }
+
+  void _exitGuestMode() {
+    setState(() => _guestMode = false);
   }
 
   Future<void> loadOnboardingState() async {
@@ -161,6 +176,11 @@ class _PriceMateAppState extends State<PriceMateApp> {
     if (_reviewMode) {
       return _wrapShell(PriceMateShell(store: _reviewStore, onLogout: _reviewLogout));
     }
+    if (_guestMode && _guestStore != null) {
+      return _wrapShell(
+        PriceMateShell(store: _guestStore!, onLogout: _exitGuestMode),
+      );
+    }
     if (widget.useFirebase) {
       return StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
@@ -180,6 +200,7 @@ class _PriceMateAppState extends State<PriceMateApp> {
               onCreateAccount: createAccountWithEmail,
               onGoogleLogin: signInWithGoogle,
               onAppleLogin: signInWithApple,
+              onGuestMode: _enterGuestMode,
             );
           }
 

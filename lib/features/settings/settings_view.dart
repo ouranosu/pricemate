@@ -58,39 +58,61 @@ class SettingsView extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        Card(
-          child: Column(
-            children: [
-              _SettingsTile(
-                icon: Icons.person_add_alt,
-                title: l10n.invitePartner,
-                onTap: () => showInviteSheet(context, store),
+        if (store.isGuestMode) ...[
+          const SizedBox(height: 16),
+          Card(
+            color: colorScheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_outlined, color: colorScheme.onErrorContainer),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.guestModeDataWarning,
+                      style: TextStyle(color: colorScheme.onErrorContainer),
+                    ),
+                  ),
+                ],
               ),
-              const Divider(height: 1),
-              _SettingsTile(
-                icon: Icons.vpn_key_outlined,
-                title: l10n.enterInviteCode,
-                onTap: () => showAcceptInviteSheet(context, store),
-              ),
-              const Divider(height: 1),
-              _SettingsTile(
-                icon: Icons.group_outlined,
-                title: l10n.manageFamilyMembers,
-                onTap: () => showMembersSheet(context, store),
-              ),
-              if (store.activeSpaceId != null &&
-                  store.activeSpaceId != store.activeUserId) ...[
+            ),
+          ),
+        ] else ...[
+          const SizedBox(height: 16),
+          Card(
+            child: Column(
+              children: [
+                _SettingsTile(
+                  icon: Icons.person_add_alt,
+                  title: l10n.invitePartner,
+                  onTap: () => showInviteSheet(context, store),
+                ),
                 const Divider(height: 1),
                 _SettingsTile(
-                  icon: Icons.exit_to_app_outlined,
-                  title: l10n.leaveSpaceSetting,
-                  onTap: () => _confirmLeaveSpace(context, store),
+                  icon: Icons.vpn_key_outlined,
+                  title: l10n.enterInviteCode,
+                  onTap: () => showAcceptInviteSheet(context, store),
                 ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.group_outlined,
+                  title: l10n.manageFamilyMembers,
+                  onTap: () => showMembersSheet(context, store),
+                ),
+                if (store.activeSpaceId != null &&
+                    store.activeSpaceId != store.activeUserId) ...[
+                  const Divider(height: 1),
+                  _SettingsTile(
+                    icon: Icons.exit_to_app_outlined,
+                    title: l10n.leaveSpaceSetting,
+                    onTap: () => _confirmLeaveSpace(context, store),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 12),
         const BannerAdWidget(),
         const SizedBox(height: 12),
@@ -154,18 +176,26 @@ class SettingsView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout),
-          label: Text(l10n.logout),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
-          onPressed: () => _confirmDeleteAccount(context, store, onLogout),
-          icon: const Icon(Icons.delete_forever_outlined),
-          label: Text(l10n.deleteAccountSetting),
-        ),
+        if (store.isGuestMode) ...[
+          FilledButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.login),
+            label: Text(l10n.loginToSync),
+          ),
+        ] else ...[
+          OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout),
+            label: Text(l10n.logout),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: colorScheme.error),
+            onPressed: () => _confirmDeleteAccount(context, store, onLogout),
+            icon: const Icon(Icons.delete_forever_outlined),
+            label: Text(l10n.deleteAccountSetting),
+          ),
+        ],
       ],
     );
   }

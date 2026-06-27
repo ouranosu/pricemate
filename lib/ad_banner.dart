@@ -18,8 +18,52 @@ class AdConfig {
   static const String _iosBanner =
       'ca-app-pub-4185372678326421/7155426703'; // ← iOS 用に差し替え
 
+  // ★ インタースティシャル広告ユニット ID（AdMobコンソールで発行後に差し替え）
+  static const String _androidInterstitial =
+      'ca-app-pub-3940256099942544/1033173712'; // テスト用。本番IDに差し替え必要
+  static const String _iosInterstitial =
+      'ca-app-pub-3940256099942544/4411468910'; // テスト用。本番IDに差し替え必要
+
   static String get bannerUnitId =>
       Platform.isIOS ? _iosBanner : _androidBanner;
+
+  static String get interstitialUnitId =>
+      Platform.isIOS ? _iosInterstitial : _androidInterstitial;
+}
+
+// ─── インタースティシャル広告ヘルパー ────────────────────────────────────────
+
+class InterstitialAdHelper {
+  InterstitialAd? _ad;
+
+  void load() {
+    InterstitialAd.load(
+      adUnitId: AdConfig.interstitialUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) => _ad = ad,
+        onAdFailedToLoad: (error) {
+          debugLog(
+            'InterstitialAd failed: code=${error.code} '
+            'domain=${error.domain} message=${error.message}',
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> show() async {
+    final ad = _ad;
+    if (ad == null) return;
+    _ad = null;
+    await ad.show();
+    ad.dispose();
+  }
+
+  void dispose() {
+    _ad?.dispose();
+    _ad = null;
+  }
 }
 
 // ─── バナー広告ウィジェット ───────────────────────────────────────────────────

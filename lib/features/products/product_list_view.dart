@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../ad_banner.dart';
 import '../../core/debug.dart';
@@ -24,6 +26,8 @@ class ProductListView extends StatefulWidget {
 }
 
 class _ProductListViewState extends State<ProductListView> {
+  final _addKey = GlobalKey();
+  final _sortKey = GlobalKey();
   final _searchController = TextEditingController();
   String _query = '';
   String? _categoryFilter;
@@ -35,6 +39,15 @@ class _ProductListViewState extends State<ProductListView> {
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('tourDoneProducts') ?? false) return;
+    await prefs.setBool('tourDoneProducts', true);
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_sortKey, _addKey]);
   }
 
   @override
@@ -132,15 +145,25 @@ class _ProductListViewState extends State<ProductListView> {
             action: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: l10n.sortTooltip,
-                  icon: const Icon(Icons.sort),
-                  onPressed: () => _showSortSheet(context),
+                Showcase(
+                  key: _sortKey,
+                  title: l10n.tourProductSortTitle,
+                  description: l10n.tourProductSortDesc,
+                  child: IconButton(
+                    tooltip: l10n.sortTooltip,
+                    icon: const Icon(Icons.sort),
+                    onPressed: () => _showSortSheet(context),
+                  ),
                 ),
-                IconButton.filledTonal(
-                  tooltip: l10n.addProductTooltip,
-                  icon: const Icon(Icons.add),
-                  onPressed: () => showProductSheet(context, widget.store),
+                Showcase(
+                  key: _addKey,
+                  title: l10n.tourProductAddTitle,
+                  description: l10n.tourProductAddDesc,
+                  child: IconButton.filledTonal(
+                    tooltip: l10n.addProductTooltip,
+                    icon: const Icon(Icons.add),
+                    onPressed: () => showProductSheet(context, widget.store),
+                  ),
                 ),
               ],
             ),

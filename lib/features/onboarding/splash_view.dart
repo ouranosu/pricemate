@@ -44,15 +44,15 @@ class _SplashViewState extends State<SplashView>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 88,
-                  height: 88,
+                  width: 220,
+                  height: 220,
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(60),
                   ),
                   child: Icon(
                     Icons.shopping_basket_outlined,
-                    size: 44,
+                    size: 110,
                     color: colorScheme.onPrimaryContainer,
                   ),
                 ),

@@ -702,4 +702,80 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reviewLater => 'また今度';
+
+  @override
+  String get continueAsGuest => 'ログインせずに使う';
+
+  @override
+  String get guestModeWarningTitle => 'データについてご注意ください';
+
+  @override
+  String get guestModeWarningBody =>
+      'ログインせずに使用する場合、データはこのデバイスにのみ保存されます。\n\nアプリを削除したり、デバイスを変更した場合、データは失われます。';
+
+  @override
+  String get guestModeWarningConfirm => 'このまま続ける';
+
+  @override
+  String get loginToSync => 'ログインしてデータを同期する';
+
+  @override
+  String get guestModeLabel => 'ゲストモード';
+
+  @override
+  String get guestModeDataWarning => 'データはこのデバイスのみに保存されています。';
+
+  @override
+  String get tourSaleTitle => '今日の特売';
+
+  @override
+  String get tourSaleDesc => '商品に設定した特売曜日に一致する商品がここに表示されます。商品登録時に特売日を設定できます。';
+
+  @override
+  String get tourUrgentTitle => 'すぐ必要';
+
+  @override
+  String get tourUrgentDesc => '「すぐ必要」に設定した買い物アイテムがここに表示されます。';
+
+  @override
+  String get tourRecentTitle => '最近の購入';
+
+  @override
+  String get tourRecentDesc => '最近の購入記録をすぐに確認できます。左スワイプで削除できます。';
+
+  @override
+  String get tourShoppingAddTitle => 'アイテムを追加';
+
+  @override
+  String get tourShoppingAddDesc => '「すぐ必要」「そのうち」の緊急度を設定して買い物メモに追加できます。';
+
+  @override
+  String get tourShoppingListTitle => '買い物リスト';
+
+  @override
+  String get tourShoppingListDesc => 'タップで編集、左スワイプで削除できます。チェックで購入済みにしましょう。';
+
+  @override
+  String get tourHistoryAddTitle => '購入履歴を追加';
+
+  @override
+  String get tourHistoryAddDesc => '手入力またはレシートを撮影してAIに自動認識させることができます。';
+
+  @override
+  String get tourHistorySearchTitle => '履歴を検索';
+
+  @override
+  String get tourHistorySearchDesc => '商品名や店舗名で購入履歴を絞り込んで探せます。';
+
+  @override
+  String get tourProductAddTitle => '商品を追加';
+
+  @override
+  String get tourProductAddDesc => 'よく買う商品をベスト価格・許容価格と一緒に登録して、家族の価格表を作りましょう。';
+
+  @override
+  String get tourProductSortTitle => '並び替え・絞り込み';
+
+  @override
+  String get tourProductSortDesc => '名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。';
 }

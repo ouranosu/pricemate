@@ -280,5 +280,32 @@
   "reviewTitle": "アプリのご評価をお願いします",
   "reviewMessage": "プライスメイトはいかがですか？レビューをいただけると、開発の励みになります。",
   "reviewWrite": "記入する",
-  "reviewLater": "また今度"
+  "reviewLater": "また今度",
+
+  "continueAsGuest": "ログインせずに使う",
+  "guestModeWarningTitle": "データについてご注意ください",
+  "guestModeWarningBody": "ログインせずに使用する場合、データはこのデバイスにのみ保存されます。\n\nアプリを削除したり、デバイスを変更した場合、データは失われます。",
+  "guestModeWarningConfirm": "このまま続ける",
+  "loginToSync": "ログインしてデータを同期する",
+  "guestModeLabel": "ゲストモード",
+  "guestModeDataWarning": "データはこのデバイスのみに保存されています。",
+
+  "tourSaleTitle": "今日の特売",
+  "tourSaleDesc": "商品に設定した特売曜日に一致する商品がここに表示されます。商品登録時に特売日を設定できます。",
+  "tourUrgentTitle": "すぐ必要",
+  "tourUrgentDesc": "「すぐ必要」に設定した買い物アイテムがここに表示されます。",
+  "tourRecentTitle": "最近の購入",
+  "tourRecentDesc": "最近の購入記録をすぐに確認できます。左スワイプで削除できます。",
+  "tourShoppingAddTitle": "アイテムを追加",
+  "tourShoppingAddDesc": "「すぐ必要」「そのうち」の緊急度を設定して買い物メモに追加できます。",
+  "tourShoppingListTitle": "買い物リスト",
+  "tourShoppingListDesc": "タップで編集、左スワイプで削除できます。チェックで購入済みにしましょう。",
+  "tourHistoryAddTitle": "購入履歴を追加",
+  "tourHistoryAddDesc": "手入力またはレシートを撮影してAIに自動認識させることができます。",
+  "tourHistorySearchTitle": "履歴を検索",
+  "tourHistorySearchDesc": "商品名や店舗名で購入履歴を絞り込んで探せます。",
+  "tourProductAddTitle": "商品を追加",
+  "tourProductAddDesc": "よく買う商品をベスト価格・許容価格と一緒に登録して、家族の価格表を作りましょう。",
+  "tourProductSortTitle": "並び替え・絞り込み",
+  "tourProductSortDesc": "名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。"
 }

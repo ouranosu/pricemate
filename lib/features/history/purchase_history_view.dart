@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import 'package:intl/intl.dart';
 
@@ -23,6 +25,8 @@ class PurchaseHistoryView extends StatefulWidget {
 }
 
 class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
+  final _addKey = GlobalKey();
+  final _searchKey = GlobalKey();
   final _searchController = TextEditingController();
   String _query = '';
 
@@ -32,6 +36,15 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
     _searchController.addListener(() {
       setState(() => _query = _searchController.text.trim().toLowerCase());
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _maybeStartTour() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('tourDoneHistory') ?? false) return;
+    await prefs.setBool('tourDoneHistory', true);
+    if (!mounted) return;
+    ShowCaseWidget.of(context).startShowCase([_addKey, _searchKey]);
   }
 
   @override
@@ -83,30 +96,40 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
             child: ViewTitle(
               title: l10n.historyTitle,
               subtitle: l10n.historySubtitle,
-              action: IconButton.filledTonal(
-                tooltip: l10n.addPurchaseTooltip,
-                icon: const Icon(Icons.add),
-                onPressed: () =>
-                    _showAddPurchaseSheet(context, widget.store),
+              action: Showcase(
+                key: _addKey,
+                title: l10n.tourHistoryAddTitle,
+                description: l10n.tourHistoryAddDesc,
+                child: IconButton.filledTonal(
+                  tooltip: l10n.addPurchaseTooltip,
+                  icon: const Icon(Icons.add),
+                  onPressed: () =>
+                      _showAddPurchaseSheet(context, widget.store),
+                ),
               ),
             ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l10n.searchByNameStore,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => _searchController.clear(),
-                      )
-                    : null,
-                isDense: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Showcase(
+              key: _searchKey,
+              title: l10n.tourHistorySearchTitle,
+              description: l10n.tourHistorySearchDesc,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: l10n.searchByNameStore,
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () => _searchController.clear(),
+                        )
+                      : null,
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),

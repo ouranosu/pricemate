@@ -19,7 +19,10 @@ import 'store/app_store.dart';
 // ─── SQLite ヘルパー ──────────────────────────────────────────────────────────
 
 class ReviewLocalDb {
-  static Database? _instance;
+  ReviewLocalDb({this.dbName = 'review_local.db'});
+
+  final String dbName;
+  Database? _instance;
 
   Future<Database> get _db async {
     _instance ??= await _open();
@@ -29,7 +32,7 @@ class ReviewLocalDb {
   Future<Database> _open() async {
     final dir = await getDatabasesPath();
     return openDatabase(
-      p.join(dir, 'review_local.db'),
+      p.join(dir, dbName),
       version: 1,
       onCreate: (db, _) async {
         await db.execute('''

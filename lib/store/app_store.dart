@@ -40,6 +40,8 @@ class AppStore extends ChangeNotifier {
 
   AppThemePreset get selectedTheme => themeNotifier.value;
 
+  bool get isGuestMode => false;
+
   String get _id => '${DateTime.now().millisecondsSinceEpoch}-${_nextId++}';
 
   @override

@@ -1417,6 +1417,156 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'また今度'**
   String get reviewLater;
+
+  /// No description provided for @continueAsGuest.
+  ///
+  /// In ja, this message translates to:
+  /// **'ログインせずに使う'**
+  String get continueAsGuest;
+
+  /// No description provided for @guestModeWarningTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'データについてご注意ください'**
+  String get guestModeWarningTitle;
+
+  /// No description provided for @guestModeWarningBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'ログインせずに使用する場合、データはこのデバイスにのみ保存されます。\n\nアプリを削除したり、デバイスを変更した場合、データは失われます。'**
+  String get guestModeWarningBody;
+
+  /// No description provided for @guestModeWarningConfirm.
+  ///
+  /// In ja, this message translates to:
+  /// **'このまま続ける'**
+  String get guestModeWarningConfirm;
+
+  /// No description provided for @loginToSync.
+  ///
+  /// In ja, this message translates to:
+  /// **'ログインしてデータを同期する'**
+  String get loginToSync;
+
+  /// No description provided for @guestModeLabel.
+  ///
+  /// In ja, this message translates to:
+  /// **'ゲストモード'**
+  String get guestModeLabel;
+
+  /// No description provided for @guestModeDataWarning.
+  ///
+  /// In ja, this message translates to:
+  /// **'データはこのデバイスのみに保存されています。'**
+  String get guestModeDataWarning;
+
+  /// No description provided for @tourSaleTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日の特売'**
+  String get tourSaleTitle;
+
+  /// No description provided for @tourSaleDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'商品に設定した特売曜日に一致する商品がここに表示されます。商品登録時に特売日を設定できます。'**
+  String get tourSaleDesc;
+
+  /// No description provided for @tourUrgentTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'すぐ必要'**
+  String get tourUrgentTitle;
+
+  /// No description provided for @tourUrgentDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'「すぐ必要」に設定した買い物アイテムがここに表示されます。'**
+  String get tourUrgentDesc;
+
+  /// No description provided for @tourRecentTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'最近の購入'**
+  String get tourRecentTitle;
+
+  /// No description provided for @tourRecentDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'最近の購入記録をすぐに確認できます。左スワイプで削除できます。'**
+  String get tourRecentDesc;
+
+  /// No description provided for @tourShoppingAddTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'アイテムを追加'**
+  String get tourShoppingAddTitle;
+
+  /// No description provided for @tourShoppingAddDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'「すぐ必要」「そのうち」の緊急度を設定して買い物メモに追加できます。'**
+  String get tourShoppingAddDesc;
+
+  /// No description provided for @tourShoppingListTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'買い物リスト'**
+  String get tourShoppingListTitle;
+
+  /// No description provided for @tourShoppingListDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'タップで編集、左スワイプで削除できます。チェックで購入済みにしましょう。'**
+  String get tourShoppingListDesc;
+
+  /// No description provided for @tourHistoryAddTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'購入履歴を追加'**
+  String get tourHistoryAddTitle;
+
+  /// No description provided for @tourHistoryAddDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'手入力またはレシートを撮影してAIに自動認識させることができます。'**
+  String get tourHistoryAddDesc;
+
+  /// No description provided for @tourHistorySearchTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'履歴を検索'**
+  String get tourHistorySearchTitle;
+
+  /// No description provided for @tourHistorySearchDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'商品名や店舗名で購入履歴を絞り込んで探せます。'**
+  String get tourHistorySearchDesc;
+
+  /// No description provided for @tourProductAddTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'商品を追加'**
+  String get tourProductAddTitle;
+
+  /// No description provided for @tourProductAddDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'よく買う商品をベスト価格・許容価格と一緒に登録して、家族の価格表を作りましょう。'**
+  String get tourProductAddDesc;
+
+  /// No description provided for @tourProductSortTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'並び替え・絞り込み'**
+  String get tourProductSortTitle;
+
+  /// No description provided for @tourProductSortDesc.
+  ///
+  /// In ja, this message translates to:
+  /// **'名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。'**
+  String get tourProductSortDesc;
 }
 
 class _AppLocalizationsDelegate

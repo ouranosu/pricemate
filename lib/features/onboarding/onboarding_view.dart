@@ -25,9 +25,9 @@ class _OnboardingViewState extends State<OnboardingView> {
   final PageController _controller = PageController();
   int _currentPage = 0;
 
-  static const int _totalPages = 6;
+  static const int _totalPages = 5;
 
-  bool get _pageHasOwnNav => _currentPage == 3 || _currentPage == 4;
+  bool get _pageHasOwnNav => _currentPage == 3;
   bool get _showSkip => _currentPage < 3;
   bool get _isFinalPage => _currentPage == _totalPages - 1;
 
@@ -55,18 +55,17 @@ class _OnboardingViewState extends State<OnboardingView> {
 
     final pages = [
       _OnboardingPage(
-        icon: Icons.price_check_outlined,
+        imagePath: 'assets/images/onboarding_1.png',
         body: l10n.ob1Body,
       ),
       _OnboardingPage(
-        icon: Icons.document_scanner_outlined,
+        imagePath: 'assets/images/onboarding_2.png',
         body: l10n.ob2Body,
       ),
       _OnboardingPage(
-        icon: Icons.favorite_outline_rounded,
+        imagePath: 'assets/images/onboarding_3.png',
         body: l10n.ob3Body,
       ),
-      _OnboardingInvitePage(store: widget.store, onNext: _nextPage),
       _OnboardingTrackingPage(onNext: _nextPage),
       _OnboardingPage(
         icon: Icons.check_circle_outline_rounded,
@@ -130,13 +129,15 @@ class _OnboardingViewState extends State<OnboardingView> {
 
 class _OnboardingPage extends StatelessWidget {
   const _OnboardingPage({
-    required this.icon,
+    this.icon,
+    this.imagePath,
     required this.body,
     this.iconColor,
     this.iconOnColor,
-  });
+  }) : assert(icon != null || imagePath != null);
 
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
   final String body;
   final Color? iconColor;
   final Color? iconOnColor;
@@ -145,24 +146,39 @@ class _OnboardingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    Widget imageWidget;
+    if (imagePath != null) {
+      imageWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(60),
+        child: Image.asset(
+          imagePath!,
+          width: 240,
+          height: 240,
+          fit: BoxFit.cover,
+        ),
+      );
+    } else {
+      imageWidget = Container(
+        width: 240,
+        height: 240,
+        decoration: BoxDecoration(
+          color: iconColor ?? colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(60),
+        ),
+        child: Icon(
+          icon!,
+          size: 120,
+          color: iconOnColor ?? colorScheme.onSecondaryContainer,
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: iconColor ?? colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(
-              icon,
-              size: 48,
-              color: iconOnColor ?? colorScheme.onSecondaryContainer,
-            ),
-          ),
+          imageWidget,
           const SizedBox(height: 40),
           Text(
             body,
@@ -179,6 +195,7 @@ class _OnboardingPage extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _OnboardingInvitePage extends StatelessWidget {
   const _OnboardingInvitePage({required this.store, required this.onNext});
 
@@ -264,15 +281,15 @@ class _OnboardingTrackingPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 96,
-            height: 96,
+            width: 240,
+            height: 240,
             decoration: BoxDecoration(
               color: colorScheme.tertiaryContainer,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(60),
             ),
             child: Icon(
               Icons.privacy_tip_outlined,
-              size: 48,
+              size: 120,
               color: colorScheme.onTertiaryContainer,
             ),
           ),

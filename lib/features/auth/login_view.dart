@@ -15,6 +15,7 @@ class LoginView extends StatefulWidget {
     required this.onGoogleLogin,
     this.onAppleLogin,
     this.onReviewLogin,
+    this.onGuestMode,
   });
 
   final Future<void> Function(String email, String password) onEmailLogin;
@@ -22,6 +23,7 @@ class LoginView extends StatefulWidget {
   final Future<void> Function() onGoogleLogin;
   final Future<void> Function()? onAppleLogin;
   final Future<void> Function()? onReviewLogin;
+  final Future<void> Function()? onGuestMode;
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -167,6 +169,16 @@ class _LoginViewState extends State<LoginView> {
                 child: const Text('審査担当者の方はこちら'),
               ),
             ],
+            if (widget.onGuestMode != null) ...[
+              const Divider(height: 40),
+              TextButton(
+                onPressed: loading ? null : () => _confirmGuestMode(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                ),
+                child: Text(l10n.continueAsGuest),
+              ),
+            ],
           ],
         ),
       ),
@@ -205,6 +217,29 @@ class _LoginViewState extends State<LoginView> {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.sendFailed(error.toString()))));
     }
+  }
+
+  Future<void> _confirmGuestMode(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.guestModeWarningTitle),
+        content: Text(l10n.guestModeWarningBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.guestModeWarningConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await runAuthAction(widget.onGuestMode!);
   }
 
   Future<void> runAuthAction(Future<void> Function() action) async {
