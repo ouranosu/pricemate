@@ -232,6 +232,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noHistory => 'No history';
 
   @override
+  String get greetingMorning => 'Good morning';
+
+  @override
+  String get greetingAfternoon => 'Good afternoon';
+
+  @override
+  String get greetingEvening => 'Good evening';
+
+  @override
+  String get seeAll => 'See all';
+
+  @override
+  String moreCount(int count) {
+    return '+$count more';
+  }
+
+  @override
   String get shoppingListTitle => 'Shopping List';
 
   @override

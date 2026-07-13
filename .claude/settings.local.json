@@ -19,7 +19,12 @@
       "Bash(Out-Null)",
       "Bash(flutter gen-l10n *)",
       "Bash(Get-ChildItem \"C:\\\\code\\\\okstore\\\\pricemate\\\\lib\\\\l10n\\\\\" 2>&1 *)",
-      "Bash(Get-Content *)"
+      "Bash(Get-Content *)",
+      "PowerShell(flutter analyze *)",
+      "PowerShell(flutter gen-l10n *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(adb exec-out *)",
+      "PowerShell(adb *)"
     ]
   }
 }

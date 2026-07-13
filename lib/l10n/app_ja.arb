@@ -91,6 +91,14 @@
   "nothingUrgent": "すぐ必要なものはありません",
   "recentPurchases": "最近の購入",
   "noHistory": "履歴なし",
+  "greetingMorning": "おはようございます",
+  "greetingAfternoon": "こんにちは",
+  "greetingEvening": "こんばんは",
+  "seeAll": "すべて見る",
+  "moreCount": "他{count}件",
+  "@moreCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "shoppingListTitle": "買うものリスト",
   "shoppingListSubtitle": "スワイプで削除、タップで編集できます。",

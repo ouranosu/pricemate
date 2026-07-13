@@ -67,6 +67,7 @@ class _PriceMateShellState extends State<PriceMateShell> {
         child: _StorePage(
           store: store,
           selectedIndex: selectedIndex,
+          onSelectTab: (index) => setState(() => selectedIndex = index),
           onLogout: widget.onLogout,
         ),
       ),
@@ -147,11 +148,13 @@ class _StorePage extends StatelessWidget {
   const _StorePage({
     required this.store,
     required this.selectedIndex,
+    required this.onSelectTab,
     required this.onLogout,
   });
 
   final AppStore store;
   final int selectedIndex;
+  final ValueChanged<int> onSelectTab;
   final VoidCallback onLogout;
 
   @override
@@ -164,7 +167,7 @@ class _StorePage extends StatelessWidget {
           'space=${store.activeSpaceId}',
         );
         final page = switch (selectedIndex) {
-          0 => HomeView(store: store),
+          0 => HomeView(store: store, onNavigateTab: onSelectTab),
           1 => ShoppingListView(store: store),
           2 => PurchaseHistoryView(store: store),
           3 => ProductListView(store: store),

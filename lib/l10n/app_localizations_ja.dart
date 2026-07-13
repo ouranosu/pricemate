@@ -230,6 +230,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noHistory => '履歴なし';
 
   @override
+  String get greetingMorning => 'おはようございます';
+
+  @override
+  String get greetingAfternoon => 'こんにちは';
+
+  @override
+  String get greetingEvening => 'こんばんは';
+
+  @override
+  String get seeAll => 'すべて見る';
+
+  @override
+  String moreCount(int count) {
+    return '他$count件';
+  }
+
+  @override
   String get shoppingListTitle => '買うものリスト';
 
   @override

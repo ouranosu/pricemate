@@ -16,6 +16,53 @@ import '../../widgets/common_widgets.dart';
 
 const _kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
+// TestFlight など release ビルドでは debugLog が無効なため、
+// 読み込み失敗時の診断情報を画面表示するためのバッファ。
+class _ReceiptDiag {
+  final _buffer = StringBuffer();
+
+  void log(String message) {
+    _buffer.writeln(message);
+    debugLog('receipt: $message');
+  }
+
+  @override
+  String toString() => _buffer.toString();
+}
+
+// dart-define の埋め込み漏れを見分けるため、キーの有無と形だけを出す（値は出さない）。
+String _apiKeyStatus() {
+  if (_kGeminiApiKey.isEmpty) return 'EMPTY (dart-define 未設定)';
+  final head = _kGeminiApiKey.substring(0, 4);
+  return 'set (len=${_kGeminiApiKey.length}, head=$head…)';
+}
+
+// 実バイト列から MIME を判定する。iOS では XFile.mimeType が
+// null や元画像 (HEIC) を返すことがあり、再エンコード後の実体と食い違うため。
+String _detectMime(Uint8List bytes, String? reported) {
+  if (bytes.length >= 12) {
+    if (bytes[0] == 0xFF && bytes[1] == 0xD8) return 'image/jpeg';
+    if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E) {
+      return 'image/png';
+    }
+    if (bytes[0] == 0x52 && bytes[1] == 0x49 && bytes[2] == 0x46 &&
+        bytes[8] == 0x57 && bytes[9] == 0x45 && bytes[10] == 0x42) {
+      return 'image/webp';
+    }
+    final ftyp = String.fromCharCodes(bytes.sublist(4, 12));
+    if (ftyp.startsWith('ftyp')) {
+      final brand = ftyp.substring(4);
+      if (brand.startsWith('hei') || brand.startsWith('heix')) {
+        return 'image/heic';
+      }
+      if (brand.startsWith('mif1') || brand.startsWith('msf1')) {
+        return 'image/heif';
+      }
+    }
+  }
+  return reported ?? 'image/jpeg';
+}
+
 Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
   final l10n = AppLocalizations.of(context)!;
   final source = await showModalBottomSheet<ImageSource>(
@@ -52,21 +99,26 @@ Future<void> showReceiptFlow(BuildContext context, AppStore store) async {
 
   _showLoadingDialog(context, l10n.processingReceipt);
 
+  final diag = _ReceiptDiag();
   ReceiptParseResult? parsed;
   try {
+    diag.log('apiKey: ${_apiKeyStatus()}');
+    diag.log('source: ${source.name}');
+    diag.log('file: name=${xFile.name} reportedMime=${xFile.mimeType}');
     final bytes = await xFile.readAsBytes();
-    final mime = xFile.mimeType ?? 'image/jpeg';
-    parsed = await _parseReceiptWithGemini(bytes, mime);
-  } catch (e) {
-    debugLog('receiptOcr error: $e');
+    final mime = _detectMime(bytes, xFile.mimeType);
+    diag.log('bytes: ${bytes.length}, detectedMime=$mime');
+    parsed = await _parseReceiptWithGemini(bytes, mime, diag);
+    diag.log('parsed: store=${parsed.storeName}, items=${parsed.items.length}');
+  } catch (e, st) {
+    diag.log('ERROR: ${e.runtimeType}: $e');
+    diag.log('STACK: ${st.toString().split('\n').take(6).join('\n')}');
   }
   if (!context.mounted) return;
   Navigator.of(context).pop();
 
   if (parsed == null || parsed.items.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.receiptReadFailed)),
-    );
+    await _showReceiptErrorDialog(context, l10n.receiptReadFailed, diag);
     return;
   }
 
@@ -804,7 +856,14 @@ String _cleanJson(String text) => text
 Future<ReceiptParseResult> _parseReceiptWithGemini(
   Uint8List bytes,
   String mimeType,
+  _ReceiptDiag diag,
 ) async {
+  if (_kGeminiApiKey.isEmpty) {
+    throw StateError(
+      'GEMINI_API_KEY が空です。ビルド時に --dart-define-from-file=.env.json '
+      'が渡されていません（Xcode Archive 前に flutter build ipa を実行すること）。',
+    );
+  }
   final model = GenerativeModel(
     model: 'gemini-2.5-flash',
     apiKey: _kGeminiApiKey,
@@ -820,9 +879,23 @@ Future<ReceiptParseResult> _parseReceiptWithGemini(
       '}\n'
       'マークダウンのコードブロックは使わないでください。';
   final content = Content.multi([TextPart(prompt), DataPart(mimeType, bytes)]);
-  final response = await model.generateContent([content]);
+  final response = await model
+      .generateContent([content])
+      .timeout(const Duration(seconds: 60));
+  final blockReason = response.promptFeedback?.blockReason;
+  if (blockReason != null) {
+    diag.log('promptFeedback.blockReason: $blockReason');
+  }
+  if (response.candidates.isNotEmpty) {
+    diag.log('finishReason: ${response.candidates.first.finishReason}');
+  }
+  final rawText = response.text;
+  diag.log(
+    'responseText(${rawText?.length ?? 0}): '
+    '${rawText == null ? 'null' : rawText.substring(0, rawText.length > 300 ? 300 : rawText.length)}',
+  );
   final json =
-      jsonDecode(_cleanJson(response.text ?? '{}')) as Map<String, dynamic>;
+      jsonDecode(_cleanJson(rawText ?? '{}')) as Map<String, dynamic>;
   return ReceiptParseResult(
     storeName: json['storeName'] as String? ?? '',
     purchasedAt:
@@ -873,6 +946,36 @@ Future<ProductSuggestion> _suggestProductWithGemini(
         (json['acceptablePrice'] as num?)?.toInt() ??
         (item.price * 1.15).round(),
     memo: json['memo'] as String?,
+  );
+}
+
+// TestFlight デバッグ用：読み込み失敗時に診断情報を実機に表示する。
+// 原因特定が済んだら SnackBar 表示に戻すこと。
+Future<void> _showReceiptErrorDialog(
+  BuildContext context,
+  String title,
+  _ReceiptDiag diag,
+) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: SingleChildScrollView(
+          child: SelectableText(
+            diag.toString(),
+            style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('OK'),
+        ),
+      ],
+    ),
   );
 }
 

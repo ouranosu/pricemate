@@ -500,6 +500,36 @@ abstract class AppLocalizations {
   /// **'履歴なし'**
   String get noHistory;
 
+  /// No description provided for @greetingMorning.
+  ///
+  /// In ja, this message translates to:
+  /// **'おはようございます'**
+  String get greetingMorning;
+
+  /// No description provided for @greetingAfternoon.
+  ///
+  /// In ja, this message translates to:
+  /// **'こんにちは'**
+  String get greetingAfternoon;
+
+  /// No description provided for @greetingEvening.
+  ///
+  /// In ja, this message translates to:
+  /// **'こんばんは'**
+  String get greetingEvening;
+
+  /// No description provided for @seeAll.
+  ///
+  /// In ja, this message translates to:
+  /// **'すべて見る'**
+  String get seeAll;
+
+  /// No description provided for @moreCount.
+  ///
+  /// In ja, this message translates to:
+  /// **'他{count}件'**
+  String moreCount(int count);
+
   /// No description provided for @shoppingListTitle.
   ///
   /// In ja, this message translates to:

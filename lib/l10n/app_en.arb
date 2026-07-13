@@ -73,6 +73,11 @@
   "nothingUrgent": "Nothing needed urgently",
   "recentPurchases": "Recent Purchases",
   "noHistory": "No history",
+  "greetingMorning": "Good morning",
+  "greetingAfternoon": "Good afternoon",
+  "greetingEvening": "Good evening",
+  "seeAll": "See all",
+  "moreCount": "+{count} more",
 
   "shoppingListTitle": "Shopping List",
   "shoppingListSubtitle": "Swipe to delete, tap to edit.",
