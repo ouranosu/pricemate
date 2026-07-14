@@ -48,6 +48,12 @@ class _OnboardingViewState extends State<OnboardingView> {
     );
   }
 
+  // トラッキング許可のリクエスト（ATT）を必ず通過させるため、
+  // 冒頭ページの「スキップ」ではオンボーディング全体ではなくトラッキングページへ移動する。
+  void _skipToTracking() {
+    _controller.jumpToPage(3);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -87,7 +93,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                     ? Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: widget.onComplete,
+                          onPressed: _skipToTracking,
                           child: Text(l10n.obSkip),
                         ),
                       )
@@ -316,8 +322,6 @@ class _OnboardingTrackingPage extends StatelessWidget {
               child: Text(l10n.obTrackingAllow),
             ),
           ),
-          const SizedBox(height: 10),
-          TextButton(onPressed: onNext, child: Text(l10n.skip)),
         ],
       ),
     );
