@@ -77,10 +77,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get obTrackingBody =>
-      'Please allow tracking to help us optimize ads.\n\nYou can still use PriceMate without allowing tracking.';
-
-  @override
-  String get obTrackingAllow => 'Allow';
+      'On the next screen, you will see a dialog about tracking used to optimize ads.\n\nAll PriceMate features are available regardless of your choice.';
 
   @override
   String get ob5Body =>

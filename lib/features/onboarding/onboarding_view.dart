@@ -319,7 +319,7 @@ class _OnboardingTrackingPage extends StatelessWidget {
                 }
                 onNext();
               },
-              child: Text(l10n.obTrackingAllow),
+              child: Text(l10n.obNext),
             ),
           ),
         ],

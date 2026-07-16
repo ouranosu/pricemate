@@ -227,14 +227,8 @@ abstract class AppLocalizations {
   /// No description provided for @obTrackingBody.
   ///
   /// In ja, this message translates to:
-  /// **'広告の最適化のため、トラッキングの許可をお願いします。\n\n許可しなくてもプライスメイトは問題なくご利用いただけます。'**
+  /// **'次の画面で、広告の最適化に使われるトラッキングについて確認するダイアログが表示されます。\n\nどちらを選んでも、プライスメイトのすべての機能をご利用いただけます。'**
   String get obTrackingBody;
-
-  /// No description provided for @obTrackingAllow.
-  ///
-  /// In ja, this message translates to:
-  /// **'許可する'**
-  String get obTrackingAllow;
 
   /// No description provided for @ob5Body.
   ///

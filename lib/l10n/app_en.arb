@@ -24,8 +24,7 @@
   "obInviteIssue": "Issue a Code",
   "obInviteEnter": "Enter a Code",
   "obInviteSkip": "Skip for now",
-  "obTrackingBody": "Please allow tracking to help us optimize ads.\n\nYou can still use PriceMate without allowing tracking.",
-  "obTrackingAllow": "Allow",
+  "obTrackingBody": "On the next screen, you will see a dialog about tracking used to optimize ads.\n\nAll PriceMate features are available regardless of your choice.",
   "ob5Body": "You're all set. Let's get started!\n\nWe recommend starting by scanning a receipt to record your purchase history.",
 
   "loginTitle": "Log In",

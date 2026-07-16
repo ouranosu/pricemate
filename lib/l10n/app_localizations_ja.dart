@@ -77,10 +77,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get obTrackingBody =>
-      '広告の最適化のため、トラッキングの許可をお願いします。\n\n許可しなくてもプライスメイトは問題なくご利用いただけます。';
-
-  @override
-  String get obTrackingAllow => '許可する';
+      '次の画面で、広告の最適化に使われるトラッキングについて確認するダイアログが表示されます。\n\nどちらを選んでも、プライスメイトのすべての機能をご利用いただけます。';
 
   @override
   String get ob5Body =>
