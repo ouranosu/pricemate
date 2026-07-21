@@ -111,7 +111,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get forgotPassword => 'パスワードを忘れた方はこちら';
 
   @override
-  String get enterEmailFirst => 'メールアドレスを入力してからタップしてください';
+  String get resetPasswordTitle => 'パスワードリセット';
+
+  @override
+  String get resetPasswordBody => '登録済みのメールアドレスを入力してください。パスワード再設定用のメールをお送りします。';
+
+  @override
+  String get send => '送信';
+
+  @override
+  String get enterEmailFirst => 'メールアドレスを入力してください';
 
   @override
   String get passwordResetSent => 'パスワードリセットメールを送信しました';

@@ -36,7 +36,10 @@
   "createAccountBtn": "アカウントを作成",
   "backToLogin": "ログインに戻る",
   "forgotPassword": "パスワードを忘れた方はこちら",
-  "enterEmailFirst": "メールアドレスを入力してからタップしてください",
+  "resetPasswordTitle": "パスワードリセット",
+  "resetPasswordBody": "登録済みのメールアドレスを入力してください。パスワード再設定用のメールをお送りします。",
+  "send": "送信",
+  "enterEmailFirst": "メールアドレスを入力してください",
   "passwordResetSent": "パスワードリセットメールを送信しました",
   "sendFailed": "送信に失敗しました。{error}",
   "@sendFailed": {

@@ -290,10 +290,28 @@ abstract class AppLocalizations {
   /// **'パスワードを忘れた方はこちら'**
   String get forgotPassword;
 
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'パスワードリセット'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @resetPasswordBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'登録済みのメールアドレスを入力してください。パスワード再設定用のメールをお送りします。'**
+  String get resetPasswordBody;
+
+  /// No description provided for @send.
+  ///
+  /// In ja, this message translates to:
+  /// **'送信'**
+  String get send;
+
   /// No description provided for @enterEmailFirst.
   ///
   /// In ja, this message translates to:
-  /// **'メールアドレスを入力してからタップしてください'**
+  /// **'メールアドレスを入力してください'**
   String get enterEmailFirst;
 
   /// No description provided for @passwordResetSent.

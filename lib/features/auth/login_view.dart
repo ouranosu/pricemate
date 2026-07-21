@@ -198,7 +198,43 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> resetPassword() async {
     final l10n = AppLocalizations.of(context)!;
-    final email = emailController.text.trim();
+    final controller = TextEditingController(text: emailController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.resetPasswordTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.resetPasswordBody),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              autofillHints: const [AutofillHints.email],
+              decoration: InputDecoration(
+                labelText: l10n.emailAddress,
+                prefixIcon: const Icon(Icons.mail_outline),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: Text(l10n.send),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (email == null || !mounted) return;
     if (email.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -211,6 +247,11 @@ class _LoginViewState extends State<LoginView> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.passwordResetSent)));
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(authErrorMessage(error, l10n))),
+      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
