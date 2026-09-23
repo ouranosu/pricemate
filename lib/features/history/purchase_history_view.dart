@@ -95,7 +95,7 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
             child: ViewTitle(
               title: l10n.historyTitle,
-              subtitle: l10n.historySubtitle,
+              subtitle: l10n.historyIntro,
               action: Showcase(
                 key: _addKey,
                 title: l10n.tourHistoryAddTitle,
@@ -103,8 +103,7 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
                 child: IconButton.filledTonal(
                   tooltip: l10n.addPurchaseTooltip,
                   icon: const Icon(Icons.add),
-                  onPressed: () =>
-                      _showAddPurchaseSheet(context, widget.store),
+                  onPressed: () => _showAddPurchaseSheet(context, widget.store),
                 ),
               ),
             ),
@@ -134,10 +133,14 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
               ),
             ),
           ),
-          const BannerAdWidget(),
           Expanded(
             child: widget.store.purchaseRecords.isEmpty
-                ? EmptyMessage(message: l10n.emptyHistory)
+                ? SingleChildScrollView(
+                    child: EmptyMessage(
+                      message: l10n.emptyHistoryHint,
+                      icon: Icons.receipt_long_outlined,
+                    ),
+                  )
                 : filtered.isEmpty
                 ? EmptyMessage(message: l10n.noSearchResults)
                 : ListView.builder(
@@ -165,13 +168,15 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
                         background: const DeleteBackground(),
                         onDismissed: (_) {
                           HapticFeedback.mediumImpact();
-                          debugLog(
-                            'Dismiss purchase record id=${record.id}',
-                          );
+                          debugLog('Dismiss purchase record id=${record.id}');
                           widget.store.deletePurchaseRecord(record);
                         },
                         child: Card(
                           child: ListTile(
+                            leading: Icon(
+                              Icons.receipt_long_outlined,
+                              color: colorScheme.primary,
+                            ),
                             title: Text(
                               record.productName,
                               style: const TextStyle(
@@ -186,7 +191,8 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
                             trailing: Text(
                               formatYen(record.price),
                               style: TextStyle(
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 19,
                                 color: colorScheme.primary,
                               ),
                             ),
@@ -201,16 +207,25 @@ class _PurchaseHistoryViewState extends State<PurchaseHistoryView> {
                     },
                   ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => showReceiptFlow(context, widget.store),
+                icon: const Icon(Icons.document_scanner_outlined),
+                label: Text(l10n.scanReceipt),
+              ),
+            ),
+          ),
+          const BannerAdWidget(),
         ],
       ),
     );
   }
 }
 
-Future<void> _showAddPurchaseSheet(
-  BuildContext context,
-  AppStore store,
-) {
+Future<void> _showAddPurchaseSheet(BuildContext context, AppStore store) {
   return showModalBottomSheet<void>(
     context: context,
     builder: (ctx) => SafeArea(

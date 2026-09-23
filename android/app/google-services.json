@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "734452752206-5gjm67hp1do8bjs7qmsenj7keqbl7v7t.apps.googleusercontent.com",
+          "client_id": "734452752206-nf5u83v6792jd2b8kknct2lvqlpo3b6t.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.okstore.pricemate",
-            "certificate_hash": "28939b0dd8de53106013211836ff1aea2094519a"
+            "certificate_hash": "5850f7b9fc96afc12ba4a6f429bc9f65d224b3ab"
           }
         },
         {

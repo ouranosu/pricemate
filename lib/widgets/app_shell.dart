@@ -48,98 +48,48 @@ class _PriceMateShellState extends State<PriceMateShell> {
     debugLog('PriceMateShell build selectedIndex=$selectedIndex');
     return ShowCaseWidget(
       builder: (showcaseCtx) => Scaffold(
-      appBar: AppBar(
-        title: const Text('PriceMate'),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            tooltip: l10n.notifTooltip,
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.notifComingSoon)),
-              );
-            },
+        appBar: AppBar(title: const Text('PriceMate'), centerTitle: false),
+        body: SafeArea(
+          child: _StorePage(
+            store: store,
+            selectedIndex: selectedIndex,
+            onSelectTab: (index) => setState(() => selectedIndex = index),
+            onLogout: widget.onLogout,
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: _StorePage(
-          store: store,
-          selectedIndex: selectedIndex,
-          onSelectTab: (index) => setState(() => selectedIndex = index),
-          onLogout: widget.onLogout,
         ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        height: 64,
-        padding: EdgeInsets.zero,
-        child: Row(
-          children: [
-            Expanded(
-              child: _TabButton(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: l10n.tabHome,
-                active: selectedIndex == 0,
-                onTap: () {
-                  debugLog('Tab tap home');
-                  setState(() => selectedIndex = 0);
-                },
-              ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) =>
+              setState(() => selectedIndex = index),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home_rounded),
+              label: l10n.tabHome,
             ),
-            Expanded(
-              child: _TabButton(
-                icon: Icons.checklist_outlined,
-                activeIcon: Icons.checklist,
-                label: l10n.tabShopping,
-                active: selectedIndex == 1,
-                onTap: () {
-                  debugLog('Tab tap shopping');
-                  setState(() => selectedIndex = 1);
-                },
-              ),
+            NavigationDestination(
+              icon: const Icon(Icons.shopping_basket_outlined),
+              selectedIcon: const Icon(Icons.shopping_basket_rounded),
+              label: l10n.tabShopping,
             ),
-            Expanded(
-              child: _TabButton(
-                icon: Icons.history,
-                activeIcon: Icons.history,
-                label: l10n.tabHistory,
-                active: selectedIndex == 2,
-                onTap: () {
-                  debugLog('Tab tap history');
-                  setState(() => selectedIndex = 2);
-                },
-              ),
+            NavigationDestination(
+              icon: const Icon(Icons.receipt_long_outlined),
+              selectedIcon: const Icon(Icons.receipt_long),
+              label: l10n.tabHistory,
             ),
-            Expanded(
-              child: _TabButton(
-                icon: Icons.inventory_2_outlined,
-                activeIcon: Icons.inventory_2,
-                label: l10n.tabProducts,
-                active: selectedIndex == 3,
-                onTap: () {
-                  debugLog('Tab tap products');
-                  setState(() => selectedIndex = 3);
-                },
-              ),
+            NavigationDestination(
+              icon: const Icon(Icons.local_offer_outlined),
+              selectedIcon: const Icon(Icons.local_offer),
+              label: l10n.tabProducts,
             ),
-            Expanded(
-              child: _TabButton(
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings,
-                label: l10n.tabSettings,
-                active: selectedIndex == 4,
-                onTap: () {
-                  debugLog('Tab tap settings');
-                  setState(() => selectedIndex = 4);
-                },
-              ),
+            NavigationDestination(
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings),
+              label: l10n.tabSettings,
             ),
           ],
         ),
       ),
-    ),
     );
   }
 }
@@ -176,66 +126,9 @@ class _StorePage extends StatelessWidget {
         };
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: KeyedSubtree(
-            key: ValueKey<int>(selectedIndex),
-            child: page,
-          ),
+          child: KeyedSubtree(key: ValueKey<int>(selectedIndex), child: page),
         );
       },
-    );
-  }
-}
-
-class _TabButton extends StatelessWidget {
-  const _TabButton({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color =
-        active ? colorScheme.primary : colorScheme.onSurfaceVariant;
-    return Semantics(
-      label: label,
-      selected: active,
-      button: true,
-      excludeSemantics: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          height: 64,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: active ? 28 : 0,
-                height: 3,
-                margin: const EdgeInsets.only(bottom: 4),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Icon(active ? activeIcon : icon, color: color),
-              const SizedBox(height: 3),
-              Text(label, style: TextStyle(color: color, fontSize: 11)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

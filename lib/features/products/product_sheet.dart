@@ -82,91 +82,113 @@ Future<void> showProductSheet(
                               ? l10n.addProductSheet
                               : l10n.editProductSheet,
                         ),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: name,
                           decoration: InputDecoration(
                             labelText: l10n.productName,
                           ),
                         ),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: storeName,
                           decoration: InputDecoration(
                             labelText: l10n.storeName,
                           ),
                         ),
-                        TextField(
-                          controller: size,
-                          decoration: InputDecoration(
-                            labelText: l10n.sizeOptional,
-                          ),
-                        ),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: bestPrice,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: l10n.bestPrice,
+                            labelText: l10n.personalBest,
+                            prefixText: '¥ ',
                           ),
                         ),
+                        const SizedBox(height: 12),
                         TextField(
                           controller: acceptablePrice,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: l10n.acceptablePrice,
+                            labelText: l10n.priceGuide,
+                            prefixText: '¥ ',
                           ),
                         ),
-                        TextField(
-                          controller: memo,
-                          decoration: InputDecoration(
-                            labelText: l10n.memoOptional,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.categoryHeading,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: productCategories.map((cat) {
-                            return FilterChip(
-                              label: Text(
-                                localizedCategoryLabel(cat.id, l10n),
+                        const SizedBox(height: 12),
+                        ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 12),
+                          title: Text(l10n.optionalDetails),
+                          subtitle: Text(l10n.optionalDetailsHint),
+                          children: [
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: size,
+                              decoration: InputDecoration(
+                                labelText: l10n.sizeOptional,
                               ),
-                              selected: selectedCategory == cat.id,
-                              onSelected: (selected) {
-                                setSheetState(() {
-                                  selectedCategory = selected ? cat.id : null;
-                                });
-                              },
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.saleDaysHeading,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          children: List.generate(7, (index) {
-                            final weekday = index + 1;
-                            final wdLabels =
-                                localizedWeekdayLabels(l10n);
-                            return FilterChip(
-                              label: Text(wdLabels[index]),
-                              selected: saleDays.contains(weekday),
-                              onSelected: (selected) {
-                                setSheetState(() {
-                                  selected
-                                      ? saleDays.add(weekday)
-                                      : saleDays.remove(weekday);
-                                });
-                              },
-                            );
-                          }),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: memo,
+                              decoration: InputDecoration(
+                                labelText: l10n.memoOptional,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.categoryHeading,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: productCategories.map((cat) {
+                                return FilterChip(
+                                  label: Text(
+                                    localizedCategoryLabel(cat.id, l10n),
+                                  ),
+                                  selected: selectedCategory == cat.id,
+                                  onSelected: (selected) {
+                                    setSheetState(() {
+                                      selectedCategory = selected
+                                          ? cat.id
+                                          : null;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.saleDaysHeading,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: List.generate(7, (index) {
+                                final weekday = index + 1;
+                                final wdLabels = localizedWeekdayLabels(l10n);
+                                return FilterChip(
+                                  label: Text(wdLabels[index]),
+                                  selected: saleDays.contains(weekday),
+                                  onSelected: (selected) {
+                                    setSheetState(() {
+                                      selected
+                                          ? saleDays.add(weekday)
+                                          : saleDays.remove(weekday);
+                                    });
+                                  },
+                                );
+                              }),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 20),
                         FilledButton(
@@ -195,12 +217,8 @@ Future<void> showProductSheet(
                                         l10n.acceptablePriceConstraint;
                                   }
                                   if (validationError != null) {
-                                    ScaffoldMessenger.of(
-                                      context,
-                                    ).showSnackBar(
-                                      SnackBar(
-                                        content: Text(validationError),
-                                      ),
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(validationError)),
                                     );
                                     return;
                                   }
@@ -218,8 +236,7 @@ Future<void> showProductSheet(
                                     bestPrice:
                                         int.tryParse(bestPrice.text) ?? 0,
                                     acceptablePrice:
-                                        int.tryParse(acceptablePrice.text) ??
-                                        0,
+                                        int.tryParse(acceptablePrice.text) ?? 0,
                                     saleDays: saleDays,
                                     memo: memo.text.trim().isEmpty
                                         ? null
@@ -232,8 +249,9 @@ Future<void> showProductSheet(
                                     );
                                     isProcessing = true;
                                   });
-                                  WidgetsBinding.instance
-                                      .addPostFrameCallback((_) {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
                                     debugLog(
                                       'showProductSheet popCallback mounted=${context.mounted} '
                                       'phase=${SchedulerBinding.instance.schedulerPhase}',

@@ -141,7 +141,7 @@ class _ProductListViewState extends State<ProductListView> {
         children: [
           ViewTitle(
             title: l10n.productListTitle,
-            subtitle: l10n.productListSubtitle,
+            subtitle: l10n.yourPriceBook,
             action: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -187,7 +187,6 @@ class _ProductListViewState extends State<ProductListView> {
             ),
           ),
           const SizedBox(height: 8),
-          const BannerAdWidget(),
           if (visibleCategories.isNotEmpty) ...[
             const SizedBox(height: 8),
             SingleChildScrollView(
@@ -197,8 +196,7 @@ class _ProductListViewState extends State<ProductListView> {
                   FilterChip(
                     label: Text(l10n.filterAll),
                     selected: _categoryFilter == null,
-                    onSelected: (_) =>
-                        setState(() => _categoryFilter = null),
+                    onSelected: (_) => setState(() => _categoryFilter = null),
                   ),
                   ...visibleCategories.map((cat) {
                     return Padding(
@@ -218,15 +216,19 @@ class _ProductListViewState extends State<ProductListView> {
           ],
           const SizedBox(height: 12),
           if (widget.store.products.isEmpty)
-            EmptyMessage(message: l10n.emptyProductList)
+            EmptyMessage(
+              message: l10n.emptyProductsHint,
+              action: FilledButton.icon(
+                onPressed: () => showProductSheet(context, widget.store),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.addFirstProduct),
+              ),
+            )
           else if (filtered.isEmpty)
             EmptyMessage(message: l10n.noSearchResults)
           else
             ...filtered.map((product) {
-              final catLabel = categoryLabel(product.category);
-              final sizeText = product.size == null || product.size!.isEmpty
-                  ? ''
-                  : ' / ${product.size}';
+              final catLabel = localizedCategoryLabel(product.category, l10n);
               return Dismissible(
                 key: ValueKey(product.id),
                 direction: DismissDirection.endToStart,
@@ -237,31 +239,129 @@ class _ProductListViewState extends State<ProductListView> {
                   widget.store.deleteProduct(product);
                 },
                 child: Card(
-                  child: ListTile(
-                    title: Text(
-                      product.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: Text(
-                      '${catLabel.isNotEmpty ? '[$catLabel] ' : ''}${product.storeName}$sizeText\n'
-                      '${l10n.bestLabel} ${formatYen(product.bestPrice)} / ${l10n.acceptableLabel} ${formatYen(product.acceptablePrice)}',
-                    ),
-                    isThreeLine: true,
-                    trailing: const Icon(Icons.chevron_right),
+                  child: InkWell(
                     onTap: () => showProductSheet(
                       context,
                       widget.store,
                       product: product,
                     ),
-                    onLongPress: () => showPurchaseSheet(
-                      context,
-                      widget.store,
-                      product: product,
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              ProductAvatar(category: product.category),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    Text(
+                                      [
+                                        product.storeName,
+                                        if (product.size?.isNotEmpty ?? false)
+                                          product.size!,
+                                      ].join(' · '),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Wrap(
+                            spacing: 28,
+                            runSpacing: 12,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.priceGuide,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelMedium,
+                                  ),
+                                  Text(
+                                    formatYen(product.acceptablePrice),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.personalBest,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelMedium,
+                                  ),
+                                  Text(
+                                    formatYen(product.bestPrice),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
+                            children: [
+                              if (catLabel.isNotEmpty)
+                                Text(
+                                  catLabel,
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              TextButton.icon(
+                                onPressed: () => showPurchaseSheet(
+                                  context,
+                                  widget.store,
+                                  product: product,
+                                ),
+                                icon: const Icon(Icons.add, size: 18),
+                                label: Text(l10n.recordPurchaseAction),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               );
             }),
+          const SizedBox(height: 16),
+          const BannerAdWidget(),
         ],
       ),
     );

@@ -36,76 +36,79 @@ Future<void> showShoppingItemSheet(
               20,
               MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SheetTitle(
-                  title: item == null
-                      ? l10n.addShoppingItemSheet
-                      : l10n.editShoppingItemSheet,
-                ),
-                TextField(
-                  controller: name,
-                  decoration: InputDecoration(labelText: l10n.productName),
-                ),
-                const SizedBox(height: 16),
-                SegmentedButton<Urgency>(
-                  segments: [
-                    ButtonSegment(
-                      value: Urgency.now,
-                      label: Text(l10n.urgencyNow),
-                    ),
-                    ButtonSegment(
-                      value: Urgency.later,
-                      label: Text(l10n.urgencyLater),
-                    ),
-                  ],
-                  selected: {urgency},
-                  onSelectionChanged: (value) =>
-                      setSheetState(() => urgency = value.first),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  style: const ButtonStyle(animationDuration: Duration.zero),
-                  onPressed: isProcessing
-                      ? null
-                      : () {
-                          if (name.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.enterProductName),
-                              ),
-                            );
-                            return;
-                          }
-                          debugLog(
-                            'showShoppingItemSheet safeClose '
-                            'phase=${SchedulerBinding.instance.schedulerPhase}',
-                          );
-                          final result = ShoppingItem(
-                            id: item?.id ?? 'new',
-                            name: name.text.trim(),
-                            urgency: urgency,
-                            checked: item?.checked ?? false,
-                          );
-                          setSheetState(() {
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SheetTitle(
+                    title: item == null
+                        ? l10n.addShoppingItemSheet
+                        : l10n.editShoppingItemSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: name,
+                    decoration: InputDecoration(labelText: l10n.productName),
+                  ),
+                  const SizedBox(height: 16),
+                  SegmentedButton<Urgency>(
+                    segments: [
+                      ButtonSegment(
+                        value: Urgency.now,
+                        label: Text(l10n.urgencyNow),
+                      ),
+                      ButtonSegment(
+                        value: Urgency.later,
+                        label: Text(l10n.urgencyLater),
+                      ),
+                    ],
+                    selected: {urgency},
+                    onSelectionChanged: (value) =>
+                        setSheetState(() => urgency = value.first),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    style: const ButtonStyle(animationDuration: Duration.zero),
+                    onPressed: isProcessing
+                        ? null
+                        : () {
+                            if (name.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.enterProductName)),
+                              );
+                              return;
+                            }
                             debugLog(
-                              'showShoppingItemSheet setSheetState isProcessing=true',
-                            );
-                            isProcessing = true;
-                          });
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            debugLog(
-                              'showShoppingItemSheet popCallback mounted=${context.mounted} '
+                              'showShoppingItemSheet safeClose '
                               'phase=${SchedulerBinding.instance.schedulerPhase}',
                             );
-                            if (context.mounted) Navigator.pop(context, result);
-                          });
-                        },
-                  child: Text(l10n.save),
-                ),
-              ],
+                            final result = ShoppingItem(
+                              id: item?.id ?? 'new',
+                              name: name.text.trim(),
+                              urgency: urgency,
+                              checked: item?.checked ?? false,
+                            );
+                            setSheetState(() {
+                              debugLog(
+                                'showShoppingItemSheet setSheetState isProcessing=true',
+                              );
+                              isProcessing = true;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              debugLog(
+                                'showShoppingItemSheet popCallback mounted=${context.mounted} '
+                                'phase=${SchedulerBinding.instance.schedulerPhase}',
+                              );
+                              if (context.mounted) {
+                                Navigator.pop(context, result);
+                              }
+                            });
+                          },
+                    child: Text(item == null ? l10n.addToList : l10n.save),
+                  ),
+                ],
+              ),
             ),
           );
         },

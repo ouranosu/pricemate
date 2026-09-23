@@ -116,40 +116,10 @@ class _PriceMateAppState extends State<PriceMateApp> {
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
               ],
-              supportedLocales: const [
-                Locale('ja'),
-                Locale('en'),
-              ],
+              supportedLocales: const [Locale('ja'), Locale('en')],
               themeMode: ThemeMode.system,
-              theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: theme.seedColor,
-              brightness: Brightness.light,
-            ),
-            scaffoldBackgroundColor: theme.scaffoldColor,
-            cardTheme: const CardThemeData(
-              elevation: 0,
-              margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-            ),
-          ),
-          darkTheme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: theme.seedColor,
-              brightness: Brightness.dark,
-            ),
-            cardTheme: const CardThemeData(
-              elevation: 0,
-              margin: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-            ),
-          ),
+              theme: buildAppTheme(theme, Brightness.light),
+              darkTheme: buildAppTheme(theme, Brightness.dark),
               home: _buildHome(),
             );
           },
@@ -174,7 +144,9 @@ class _PriceMateAppState extends State<PriceMateApp> {
       return OnboardingView(onComplete: completeOnboarding, store: store);
     }
     if (_reviewMode) {
-      return _wrapShell(PriceMateShell(store: _reviewStore, onLogout: _reviewLogout));
+      return _wrapShell(
+        PriceMateShell(store: _reviewStore, onLogout: _reviewLogout),
+      );
     }
     if (_guestMode && _guestStore != null) {
       return _wrapShell(
@@ -358,4 +330,3 @@ class _JaUpgraderMessages extends UpgraderMessages {
   @override
   String get title => '新しいバージョンがあります';
 }
-

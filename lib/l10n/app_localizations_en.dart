@@ -824,4 +824,90 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tourProductSortDesc =>
       'Sort by name or price, and use the category chips to filter the list.';
+
+  @override
+  String get marketEyebrow => 'A little discovery in every shop.';
+
+  @override
+  String get saleDayHeadline => 'Your sale-day shortlist';
+
+  @override
+  String get saleDayNote =>
+      'Based on your saved sale days. Prices are your buying guide.';
+
+  @override
+  String get homeStartTitle => 'Know your prices. Shop with confidence.';
+
+  @override
+  String get homeStartBody =>
+      'Save your everyday favourites and know a good price when you see one.';
+
+  @override
+  String get priceGuide => 'Buying guide';
+
+  @override
+  String get personalBest => 'Saved lowest price';
+
+  @override
+  String get shoppingProgress => 'Shopping progress';
+
+  @override
+  String get shoppingComplete => 'All done!';
+
+  @override
+  String get shoppingCompleteBody => 'Shopping sorted. Nicely done.';
+
+  @override
+  String get shoppingReady => 'One item at a time.';
+
+  @override
+  String get completedItems => 'Completed';
+
+  @override
+  String get addToList => 'Add an item';
+
+  @override
+  String get addFirstProduct => 'Save your first product';
+
+  @override
+  String get recordPurchaseAction => 'Record a purchase';
+
+  @override
+  String get optionalDetails => 'Add more details';
+
+  @override
+  String get optionalDetailsHint => 'Size, notes, category and sale days';
+
+  @override
+  String get yourPriceBook => 'Your household price book';
+
+  @override
+  String get sharedShopping => 'Better shopping, together.';
+
+  @override
+  String get sharedShoppingBody => 'Invite someone or check your members here.';
+
+  @override
+  String get appearanceHeading => 'Make it yours';
+
+  @override
+  String get familyHeading => 'Your household';
+
+  @override
+  String get aboutHeading => 'About PriceMate';
+
+  @override
+  String get historyIntro => 'When, where, and how much?';
+
+  @override
+  String get emptyHistoryHint =>
+      'Start your shopping story with your first receipt.';
+
+  @override
+  String get emptyShoppingHint =>
+      'Milk, eggs, your favourite bread. Start with one item.';
+
+  @override
+  String get emptyProductsHint =>
+      'Build a little collection of prices for your everyday favourites.';
 }

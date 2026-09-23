@@ -43,81 +43,89 @@ Future<void> showPurchaseSheet(
               20,
               MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SheetTitle(
-                  title: record == null
-                      ? l10n.addPurchaseSheet
-                      : l10n.editPurchaseSheet,
-                ),
-                TextField(
-                  controller: productName,
-                  decoration: InputDecoration(labelText: l10n.productName),
-                ),
-                TextField(
-                  controller: storeName,
-                  decoration: InputDecoration(labelText: l10n.storeName),
-                ),
-                TextField(
-                  controller: price,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: l10n.purchasePrice),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  style: const ButtonStyle(animationDuration: Duration.zero),
-                  onPressed: isProcessing
-                      ? null
-                      : () {
-                          final productNameVal = productName.text.trim();
-                          final priceVal = int.tryParse(price.text) ?? 0;
-                          if (productNameVal.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.enterProductName),
-                              ),
-                            );
-                            return;
-                          }
-                          if (priceVal == 0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.enterPurchasePrice),
-                              ),
-                            );
-                            return;
-                          }
-                          debugLog(
-                            'showPurchaseSheet safeClose '
-                            'phase=${SchedulerBinding.instance.schedulerPhase}',
-                          );
-                          final saved = PurchaseRecord(
-                            id: record?.id ?? 'new',
-                            productName: productName.text.trim(),
-                            storeName: storeName.text.trim(),
-                            price: int.tryParse(price.text) ?? 0,
-                            purchasedAt: record?.purchasedAt ?? DateTime.now(),
-                            source: record?.source ?? 'manual',
-                          );
-                          setSheetState(() {
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SheetTitle(
+                    title: record == null
+                        ? l10n.addPurchaseSheet
+                        : l10n.editPurchaseSheet,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: productName,
+                    decoration: InputDecoration(labelText: l10n.productName),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: storeName,
+                    decoration: InputDecoration(labelText: l10n.storeName),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: price,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: l10n.purchasePrice),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    style: const ButtonStyle(animationDuration: Duration.zero),
+                    onPressed: isProcessing
+                        ? null
+                        : () {
+                            final productNameVal = productName.text.trim();
+                            final priceVal = int.tryParse(price.text) ?? 0;
+                            if (productNameVal.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(l10n.enterProductName)),
+                              );
+                              return;
+                            }
+                            if (priceVal == 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.enterPurchasePrice),
+                                ),
+                              );
+                              return;
+                            }
                             debugLog(
-                              'showPurchaseSheet setSheetState isProcessing=true',
-                            );
-                            isProcessing = true;
-                          });
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            debugLog(
-                              'showPurchaseSheet popCallback mounted=${context.mounted} '
+                              'showPurchaseSheet safeClose '
                               'phase=${SchedulerBinding.instance.schedulerPhase}',
                             );
-                            if (context.mounted) Navigator.pop(context, saved);
-                          });
-                        },
-                  child: Text(l10n.save),
-                ),
-              ],
+                            final saved = PurchaseRecord(
+                              id: record?.id ?? 'new',
+                              productName: productName.text.trim(),
+                              storeName: storeName.text.trim(),
+                              price: int.tryParse(price.text) ?? 0,
+                              purchasedAt:
+                                  record?.purchasedAt ?? DateTime.now(),
+                              source: record?.source ?? 'manual',
+                            );
+                            setSheetState(() {
+                              debugLog(
+                                'showPurchaseSheet setSheetState isProcessing=true',
+                              );
+                              isProcessing = true;
+                            });
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              debugLog(
+                                'showPurchaseSheet popCallback mounted=${context.mounted} '
+                                'phase=${SchedulerBinding.instance.schedulerPhase}',
+                              );
+                              if (context.mounted) {
+                                Navigator.pop(context, saved);
+                              }
+                            });
+                          },
+                    child: Text(
+                      record == null ? l10n.recordPurchaseAction : l10n.save,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },

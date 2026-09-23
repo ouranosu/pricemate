@@ -1609,6 +1609,168 @@ abstract class AppLocalizations {
   /// In ja, this message translates to:
   /// **'名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。'**
   String get tourProductSortDesc;
+
+  /// No description provided for @marketEyebrow.
+  ///
+  /// In ja, this message translates to:
+  /// **'いつもの買い物に、小さな発見。'**
+  String get marketEyebrow;
+
+  /// No description provided for @saleDayHeadline.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日の特売をチェック'**
+  String get saleDayHeadline;
+
+  /// No description provided for @saleDayNote.
+  ///
+  /// In ja, this message translates to:
+  /// **'登録した曜日をもとに表示しています。価格は購入の目安です。'**
+  String get saleDayNote;
+
+  /// No description provided for @homeStartTitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'いつもの価格を、味方に。'**
+  String get homeStartTitle;
+
+  /// No description provided for @homeStartBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'よく買うものを記録して、店頭での「これ高い？」をなくしましょう。'**
+  String get homeStartBody;
+
+  /// No description provided for @priceGuide.
+  ///
+  /// In ja, this message translates to:
+  /// **'買う目安'**
+  String get priceGuide;
+
+  /// No description provided for @personalBest.
+  ///
+  /// In ja, this message translates to:
+  /// **'記録した最安値'**
+  String get personalBest;
+
+  /// No description provided for @shoppingProgress.
+  ///
+  /// In ja, this message translates to:
+  /// **'買い物の進みぐあい'**
+  String get shoppingProgress;
+
+  /// No description provided for @shoppingComplete.
+  ///
+  /// In ja, this message translates to:
+  /// **'全部そろいました！'**
+  String get shoppingComplete;
+
+  /// No description provided for @shoppingCompleteBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'今日の買い物、おつかれさま。'**
+  String get shoppingCompleteBody;
+
+  /// No description provided for @shoppingReady.
+  ///
+  /// In ja, this message translates to:
+  /// **''**
+  String get shoppingReady;
+
+  /// No description provided for @completedItems.
+  ///
+  /// In ja, this message translates to:
+  /// **'購入済み'**
+  String get completedItems;
+
+  /// No description provided for @addToList.
+  ///
+  /// In ja, this message translates to:
+  /// **'買うものを追加'**
+  String get addToList;
+
+  /// No description provided for @addFirstProduct.
+  ///
+  /// In ja, this message translates to:
+  /// **'最初の商品を登録'**
+  String get addFirstProduct;
+
+  /// No description provided for @recordPurchaseAction.
+  ///
+  /// In ja, this message translates to:
+  /// **'購入を記録'**
+  String get recordPurchaseAction;
+
+  /// No description provided for @optionalDetails.
+  ///
+  /// In ja, this message translates to:
+  /// **'詳しく追加する'**
+  String get optionalDetails;
+
+  /// No description provided for @optionalDetailsHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'容量・メモ・カテゴリ・特売曜日'**
+  String get optionalDetailsHint;
+
+  /// No description provided for @yourPriceBook.
+  ///
+  /// In ja, this message translates to:
+  /// **'わが家の価格ノート'**
+  String get yourPriceBook;
+
+  /// No description provided for @sharedShopping.
+  ///
+  /// In ja, this message translates to:
+  /// **'買い物を、一緒に。'**
+  String get sharedShopping;
+
+  /// No description provided for @sharedShoppingBody.
+  ///
+  /// In ja, this message translates to:
+  /// **'招待やメンバーの確認はこちらから。'**
+  String get sharedShoppingBody;
+
+  /// No description provided for @appearanceHeading.
+  ///
+  /// In ja, this message translates to:
+  /// **'自分らしく使う'**
+  String get appearanceHeading;
+
+  /// No description provided for @familyHeading.
+  ///
+  /// In ja, this message translates to:
+  /// **'家族と共有'**
+  String get familyHeading;
+
+  /// No description provided for @aboutHeading.
+  ///
+  /// In ja, this message translates to:
+  /// **'このアプリについて'**
+  String get aboutHeading;
+
+  /// No description provided for @historyIntro.
+  ///
+  /// In ja, this message translates to:
+  /// **'いつ、どこで、いくらだった？'**
+  String get historyIntro;
+
+  /// No description provided for @emptyHistoryHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'最初のレシートから、買い物の記録を始めましょう。'**
+  String get emptyHistoryHint;
+
+  /// No description provided for @emptyShoppingHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'牛乳、卵、いつものパン。まずはひとつ追加してみましょう。'**
+  String get emptyShoppingHint;
+
+  /// No description provided for @emptyProductsHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'よく買う商品の価格を、ここに集めていきましょう。'**
+  String get emptyProductsHint;
 }
 
 class _AppLocalizationsDelegate

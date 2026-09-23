@@ -25,9 +25,10 @@ class _OnboardingViewState extends State<OnboardingView> {
   final PageController _controller = PageController();
   int _currentPage = 0;
 
-  static const int _totalPages = 5;
+  bool get _showsTrackingPage => Platform.isIOS;
+  int get _totalPages => _showsTrackingPage ? 5 : 4;
 
-  bool get _pageHasOwnNav => _currentPage == 3;
+  bool get _pageHasOwnNav => _showsTrackingPage && _currentPage == 3;
   bool get _showSkip => _currentPage < 3;
   bool get _isFinalPage => _currentPage == _totalPages - 1;
 
@@ -48,9 +49,8 @@ class _OnboardingViewState extends State<OnboardingView> {
     );
   }
 
-  // トラッキング許可のリクエスト（ATT）を必ず通過させるため、
-  // 冒頭ページの「スキップ」ではオンボーディング全体ではなくトラッキングページへ移動する。
-  void _skipToTracking() {
+  // iOSではATTの説明へ、それ以外では完了ページへ進む。
+  void _skipIntroduction() {
     _controller.jumpToPage(3);
   }
 
@@ -72,7 +72,7 @@ class _OnboardingViewState extends State<OnboardingView> {
         imagePath: 'assets/images/onboarding_3.png',
         body: l10n.ob3Body,
       ),
-      _OnboardingTrackingPage(onNext: _nextPage),
+      if (_showsTrackingPage) _OnboardingTrackingPage(onNext: _nextPage),
       _OnboardingPage(
         icon: Icons.check_circle_outline_rounded,
         body: l10n.ob5Body,
@@ -93,7 +93,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                     ? Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: _skipToTracking,
+                          onPressed: _skipIntroduction,
                           child: Text(l10n.obSkip),
                         ),
                       )
@@ -155,37 +155,36 @@ class _OnboardingPage extends StatelessWidget {
     Widget imageWidget;
     if (imagePath != null) {
       imageWidget = ClipRRect(
-        borderRadius: BorderRadius.circular(60),
+        borderRadius: BorderRadius.circular(40),
         child: Image.asset(
           imagePath!,
-          width: 240,
-          height: 240,
+          width: 160,
+          height: 160,
           fit: BoxFit.cover,
         ),
       );
     } else {
       imageWidget = Container(
-        width: 240,
-        height: 240,
+        width: 160,
+        height: 160,
         decoration: BoxDecoration(
           color: iconColor ?? colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(60),
+          borderRadius: BorderRadius.circular(40),
         ),
         child: Icon(
           icon!,
-          size: 120,
+          size: 80,
           color: iconOnColor ?? colorScheme.onSecondaryContainer,
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return _OnboardingContent(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           imageWidget,
-          const SizedBox(height: 40),
+          const SizedBox(height: 28),
           Text(
             body,
             textAlign: TextAlign.start,
@@ -196,6 +195,26 @@ class _OnboardingPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Keep the content centred when it fits and scrollable on compact screens.
+class _OnboardingContent extends StatelessWidget {
+  const _OnboardingContent({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: child,
+        ),
       ),
     );
   }
@@ -213,8 +232,7 @@ class _OnboardingInvitePage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return _OnboardingContent(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -281,21 +299,20 @@ class _OnboardingTrackingPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+    return _OnboardingContent(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 240,
-            height: 240,
+            width: 160,
+            height: 160,
             decoration: BoxDecoration(
               color: colorScheme.tertiaryContainer,
-              borderRadius: BorderRadius.circular(60),
+              borderRadius: BorderRadius.circular(40),
             ),
             child: Icon(
               Icons.privacy_tip_outlined,
-              size: 120,
+              size: 80,
               color: colorScheme.onTertiaryContainer,
             ),
           ),

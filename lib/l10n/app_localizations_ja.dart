@@ -801,4 +801,85 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tourProductSortDesc => '名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。';
+
+  @override
+  String get marketEyebrow => 'いつもの買い物に、小さな発見。';
+
+  @override
+  String get saleDayHeadline => '今日の特売をチェック';
+
+  @override
+  String get saleDayNote => '登録した曜日をもとに表示しています。価格は購入の目安です。';
+
+  @override
+  String get homeStartTitle => 'いつもの価格を、味方に。';
+
+  @override
+  String get homeStartBody => 'よく買うものを記録して、店頭での「これ高い？」をなくしましょう。';
+
+  @override
+  String get priceGuide => '買う目安';
+
+  @override
+  String get personalBest => '記録した最安値';
+
+  @override
+  String get shoppingProgress => '買い物の進みぐあい';
+
+  @override
+  String get shoppingComplete => '全部そろいました！';
+
+  @override
+  String get shoppingCompleteBody => '今日の買い物、おつかれさま。';
+
+  @override
+  String get shoppingReady => '';
+
+  @override
+  String get completedItems => '購入済み';
+
+  @override
+  String get addToList => '買うものを追加';
+
+  @override
+  String get addFirstProduct => '最初の商品を登録';
+
+  @override
+  String get recordPurchaseAction => '購入を記録';
+
+  @override
+  String get optionalDetails => '詳しく追加する';
+
+  @override
+  String get optionalDetailsHint => '容量・メモ・カテゴリ・特売曜日';
+
+  @override
+  String get yourPriceBook => 'わが家の価格ノート';
+
+  @override
+  String get sharedShopping => '買い物を、一緒に。';
+
+  @override
+  String get sharedShoppingBody => '招待やメンバーの確認はこちらから。';
+
+  @override
+  String get appearanceHeading => '自分らしく使う';
+
+  @override
+  String get familyHeading => '家族と共有';
+
+  @override
+  String get aboutHeading => 'このアプリについて';
+
+  @override
+  String get historyIntro => 'いつ、どこで、いくらだった？';
+
+  @override
+  String get emptyHistoryHint => '最初のレシートから、買い物の記録を始めましょう。';
+
+  @override
+  String get emptyShoppingHint => '牛乳、卵、いつものパン。まずはひとつ追加してみましょう。';
+
+  @override
+  String get emptyProductsHint => 'よく買う商品の価格を、ここに集めていきましょう。';
 }

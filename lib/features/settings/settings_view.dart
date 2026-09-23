@@ -15,11 +15,7 @@ import 'members_sheet.dart';
 import 'theme_sheet.dart';
 
 class SettingsView extends StatelessWidget {
-  const SettingsView({
-    super.key,
-    required this.store,
-    required this.onLogout,
-  });
+  const SettingsView({super.key, required this.store, required this.onLogout});
 
   final AppStore store;
   final VoidCallback onLogout;
@@ -31,10 +27,47 @@ class SettingsView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
-        ViewTitle(
-          title: l10n.settingsTitle,
-          subtitle: l10n.settingsSubtitle,
+        ViewTitle(title: l10n.settingsTitle, subtitle: l10n.settingsSubtitle),
+        const SizedBox(height: 20),
+        Card(
+          color: colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.people_alt_outlined,
+                  size: 36,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  l10n.sharedShopping,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  store.isGuestMode
+                      ? l10n.loginToSync
+                      : l10n.sharedShoppingBody,
+                  style: TextStyle(color: colorScheme.onPrimaryContainer),
+                ),
+                if (!store.isGuestMode) ...[
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: () => showMembersSheet(context, store),
+                    icon: const Icon(Icons.group_outlined),
+                    label: Text(l10n.manageFamilyMembers),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
+        SectionHeading(title: l10n.appearanceHeading),
         const SizedBox(height: 12),
         Card(
           child: Column(
@@ -66,7 +99,10 @@ class SettingsView extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_outlined, color: colorScheme.onErrorContainer),
+                  Icon(
+                    Icons.warning_amber_outlined,
+                    color: colorScheme.onErrorContainer,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -79,7 +115,7 @@ class SettingsView extends StatelessWidget {
             ),
           ),
         ] else ...[
-          const SizedBox(height: 16),
+          SectionHeading(title: l10n.familyHeading),
           Card(
             child: Column(
               children: [
@@ -114,7 +150,7 @@ class SettingsView extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        const BannerAdWidget(),
+        SectionHeading(title: l10n.aboutHeading),
         const SizedBox(height: 12),
         Card(
           child: Column(
@@ -196,6 +232,8 @@ class SettingsView extends StatelessWidget {
             label: Text(l10n.deleteAccountSetting),
           ),
         ],
+        const SizedBox(height: 20),
+        const BannerAdWidget(),
       ],
     );
   }
@@ -217,7 +255,16 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+      ),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle!),
       trailing: const Icon(Icons.chevron_right),
