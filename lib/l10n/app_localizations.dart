@@ -185,7 +185,7 @@ abstract class AppLocalizations {
   /// No description provided for @ob1Body.
   ///
   /// In ja, this message translates to:
-  /// **'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n安かった金額を記録することで、スーパーで「これ高い？」と悩む時間をなくせます。'**
+  /// **'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n安かった金額を記録することで、スーパーで「これ安い？」と悩む時間をなくせます。'**
   String get ob1Body;
 
   /// No description provided for @ob2Body.
@@ -1487,7 +1487,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginToSync.
   ///
   /// In ja, this message translates to:
-  /// **'ログインしてデータを同期する'**
+  /// **'ログインしてデータを共有する'**
   String get loginToSync;
 
   /// No description provided for @guestModeLabel.
@@ -1613,7 +1613,7 @@ abstract class AppLocalizations {
   /// No description provided for @marketEyebrow.
   ///
   /// In ja, this message translates to:
-  /// **'いつもの買い物に、小さな発見。'**
+  /// **'いつもの買い物で、迷いをなくす'**
   String get marketEyebrow;
 
   /// No description provided for @saleDayHeadline.
@@ -1637,7 +1637,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeStartBody.
   ///
   /// In ja, this message translates to:
-  /// **'よく買うものを記録して、店頭での「これ高い？」をなくしましょう。'**
+  /// **'よく買うものを記録して、店頭での「これ安い？」をなくしましょう。'**
   String get homeStartBody;
 
   /// No description provided for @priceGuide.
@@ -1655,7 +1655,7 @@ abstract class AppLocalizations {
   /// No description provided for @shoppingProgress.
   ///
   /// In ja, this message translates to:
-  /// **'買い物の進みぐあい'**
+  /// **'買い物リスト'**
   String get shoppingProgress;
 
   /// No description provided for @shoppingComplete.

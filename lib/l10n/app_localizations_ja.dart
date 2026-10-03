@@ -52,7 +52,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get ob1Body =>
-      'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n安かった金額を記録することで、スーパーで「これ高い？」と悩む時間をなくせます。';
+      'このアプリでは、日頃買うものの商品金額を登録できます。また、買うものメモ機能もあります。\n\n安かった金額を記録することで、スーパーで「これ安い？」と悩む時間をなくせます。';
 
   @override
   String get ob2Body =>
@@ -740,7 +740,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get guestModeWarningConfirm => 'このまま続ける';
 
   @override
-  String get loginToSync => 'ログインしてデータを同期する';
+  String get loginToSync => 'ログインしてデータを共有する';
 
   @override
   String get guestModeLabel => 'ゲストモード';
@@ -803,7 +803,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tourProductSortDesc => '名前や価格で並び替えたり、カテゴリーチップで商品を絞り込んだりできます。';
 
   @override
-  String get marketEyebrow => 'いつもの買い物に、小さな発見。';
+  String get marketEyebrow => 'いつもの買い物で、迷いをなくす';
 
   @override
   String get saleDayHeadline => '今日の特売をチェック';
@@ -815,7 +815,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get homeStartTitle => 'いつもの価格を、味方に。';
 
   @override
-  String get homeStartBody => 'よく買うものを記録して、店頭での「これ高い？」をなくしましょう。';
+  String get homeStartBody => 'よく買うものを記録して、店頭での「これ安い？」をなくしましょう。';
 
   @override
   String get priceGuide => '買う目安';
@@ -824,7 +824,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get personalBest => '記録した最安値';
 
   @override
-  String get shoppingProgress => '買い物の進みぐあい';
+  String get shoppingProgress => '買い物リスト';
 
   @override
   String get shoppingComplete => '全部そろいました！';

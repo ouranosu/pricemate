@@ -1,0 +1,58 @@
+﻿[
+    {
+        "file":  "iphone-6.5/01-price.png",
+        "width":  1242,
+        "height":  2688,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "6DA7B8C3145D895828B9503DAFA6E8A39FFC3866B63A3FB2E4A902A2DFDD287B"
+    },
+    {
+        "file":  "iphone-6.5/02-list.png",
+        "width":  1242,
+        "height":  2688,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "4DBAA06223CE7BBBA7F59D3BFCBB993883A592835B73AAF976B4F733E7407BEA"
+    },
+    {
+        "file":  "iphone-6.5/03-sales.png",
+        "width":  1242,
+        "height":  2688,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "9A2EBB5132CAE268D2E75524DA4F0BD480645874A81EFE0632F69DF9B52DDE1D"
+    },
+    {
+        "file":  "iphone-6.5/04-history.png",
+        "width":  1242,
+        "height":  2688,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "8FF7BF669EE973A1D0CC4C47A6CB6C05B7C4479E0508F387E18E6B585F269CE0"
+    },
+    {
+        "file":  "ipad-13/01-price.png",
+        "width":  2064,
+        "height":  2752,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "905323651DE1C8D4EE47FB38749F0373B9606CCE0AAA77D097ED9490AE57DCA7"
+    },
+    {
+        "file":  "ipad-13/02-list.png",
+        "width":  2064,
+        "height":  2752,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "F81A09716534D15A4E3048CF69A32BF9C6363934EDAFF940D5A2BE4B33AB82DE"
+    },
+    {
+        "file":  "ipad-13/03-sales.png",
+        "width":  2064,
+        "height":  2752,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "9480C481B0A78EBD67B851C1F8F7539075540BBACE608CBE0FFA3BC4E38DB70C"
+    },
+    {
+        "file":  "ipad-13/04-history.png",
+        "width":  2064,
+        "height":  2752,
+        "format":  "RGB PNG, no alpha",
+        "sha256":  "95F9B24B7AA2E636F5F0A8725A51631AB8C0699F6DDC707C7893465590FC39D9"
+    }
+]
