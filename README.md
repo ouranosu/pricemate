@@ -2,6 +2,10 @@
 
 PriceMate is a Flutter mobile app for sharing grocery price standards and shopping lists with partners or family members.
 
+## iOS localization / Codemagic
+
+日本語・英語のiOSリソースはビルド時に自動検証します。MacなしでのIPA検証とCodemagic設定は[手順書](docs/codemagic-ios-localization.md)を参照してください。
+
 ## MVP Scope
 
 - Email, Google, and Apple authentication with Firebase Authentication
