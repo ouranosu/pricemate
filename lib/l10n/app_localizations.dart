@@ -1721,7 +1721,7 @@ abstract class AppLocalizations {
   /// No description provided for @sharedShopping.
   ///
   /// In ja, this message translates to:
-  /// **'買い物を、一緒に。'**
+  /// **'買い物を、共有。'**
   String get sharedShopping;
 
   /// No description provided for @sharedShoppingBody.

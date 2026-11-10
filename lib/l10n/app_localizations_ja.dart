@@ -857,7 +857,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get yourPriceBook => 'わが家の価格ノート';
 
   @override
-  String get sharedShopping => '買い物を、一緒に。';
+  String get sharedShopping => '買い物を、共有。';
 
   @override
   String get sharedShoppingBody => '招待やメンバーの確認はこちらから。';
